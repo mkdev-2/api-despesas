@@ -28,8 +28,8 @@ Esta API permite o registro, visualização, edição e exclusão de despesas pe
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/gerenciamento-despesas.git
-cd gerenciamento-despesas/backend
+git clone https://github.com/mkdev-2/api-despesas.git
+cd api-despesas
 
 # Configure o ambiente
 cp .env.example .env
@@ -73,4 +73,4 @@ php scripts/prepare-test-db.php
 
 ## 📝 Licença
 
-Distribuído sob a licença MIT. 
+Distribuído sob a licença MIT. Veja `LICENSE` para mais informações. 
