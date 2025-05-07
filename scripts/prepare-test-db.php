@@ -10,27 +10,53 @@ require __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 // Definir aliases
 Yii::setAlias('@tests', __DIR__ . '/../tests');
 
-// Garantir que o host esteja correto
-// Quando estamos no container, devemos usar despesas_db
-// Quando estamos fora do container, devemos usar localhost
-$isInContainer = getenv('DOCKER_ENV') === '1' || file_exists('/.dockerenv');
-$host = $isInContainer ? 'despesas_db' : 'localhost';
-$port = $isInContainer ? 3306 : 3307;
-$dbName = 'gerenciamento_despesas_test';
-$username = 'despesas';
-$password = 'root';
+// Detectar o ambiente: Docker, CI ou Local
+$isInDocker = getenv('DOCKER_ENV') === '1' || file_exists('/.dockerenv');
+$isInCI = getenv('CI') === 'true' || getenv('GITHUB_ACTIONS') === 'true';
 
-echo "Ambiente: " . ($isInContainer ? "Dentro do contêiner Docker" : "Fora do contêiner Docker") . "\n";
+// Definir configurações de conexão com base no ambiente
+if ($isInCI) {
+    // Ambiente de CI (GitHub Actions ou outro CI)
+    $host = '127.0.0.1'; // Usar IP em vez de 'localhost' para evitar sockets
+    $port = getenv('DB_PORT') ?: '3306';
+    $dbName = getenv('DB_DATABASE_TEST') ?: 'gerenciamento_despesas_test';
+    $username = getenv('DB_USERNAME') ?: 'root';
+    $password = getenv('DB_PASSWORD') ?: 'password';
+    echo "Ambiente: CI\n";
+} elseif ($isInDocker) {
+    // Ambiente Docker
+    $host = 'despesas_db';
+    $port = 3306;
+    $dbName = 'gerenciamento_despesas_test';
+    $username = 'despesas';
+    $password = 'root';
+    echo "Ambiente: Dentro do contêiner Docker\n";
+} else {
+    // Ambiente local fora do Docker
+    $host = '127.0.0.1'; // Usar IP em vez de 'localhost' para forçar TCP/IP
+    $port = 3307;
+    $dbName = 'gerenciamento_despesas_test';
+    $username = 'despesas';
+    $password = 'root';
+    echo "Ambiente: Desenvolvimento local\n";
+}
+
 echo "Host: $host\n";
 echo "Porta: $port\n";
 
 try {
-    // Conectar primeiro sem especificar o banco de dados
+    // Tentar conectar diretamente via TCP/IP
     $dsn = "mysql:host=$host;port=$port";
-    $pdo = new PDO($dsn, $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_TIMEOUT => 5, // Timeout de conexão em segundos
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+        // Forçar TCP/IP para evitar problemas com sockets
+        PDO::MYSQL_ATTR_DIRECT_QUERY => false,
+    ];
     
-    echo "Conectando ao servidor de banco de dados em $host...\n";
+    echo "Tentando conectar ao servidor de banco de dados em $host:$port...\n";
+    $pdo = new PDO($dsn, $username, $password, $options);
     
     // Verificar se o usuário tem privilégios para criar/modificar o banco de dados
     try {
@@ -41,8 +67,9 @@ try {
         // Se não tiver permissão, tentar conectar como root
         echo "Usuário $username não tem permissão para criar o banco de dados. Tentando como root...\n";
         try {
-            $rootPdo = new PDO("mysql:host=$host;port=$port", 'root', 'password');
-            $rootPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $rootUsername = 'root';
+            $rootPassword = $isInCI ? 'password' : 'password'; // Ajustar conforme o ambiente
+            $rootPdo = new PDO("mysql:host=$host;port=$port", $rootUsername, $rootPassword, $options);
             
             // Dropar o banco de dados se existir
             $rootPdo->exec("DROP DATABASE IF EXISTS `$dbName`");
@@ -117,6 +144,7 @@ try {
     
 } catch (PDOException $e) {
     echo "Erro ao conectar ou manipular o banco de dados: " . $e->getMessage() . "\n";
+    echo "Certifique-se que o serviço MySQL está rodando e acessível em $host:$port.\n";
     exit(1);
 }
 

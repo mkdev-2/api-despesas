@@ -6,38 +6,60 @@
  * e as migrações estão falhando pois as tabelas já existem.
  */
 
-// Configuração para ambiente fora do Docker
-if (!getenv('DOCKER_ENV')) {
-    $host = 'localhost';
-    $port = '3307';
-    $dbname = 'gerenciamento_despesas';
-    $username = 'despesas';
-    $password = 'root';
-    echo "Conectando ao banco de dados em $host:$port\n";
-} else {
+// Detectar ambiente: Docker, CI ou Local
+$isInDocker = getenv('DOCKER_ENV') === '1' || file_exists('/.dockerenv');
+$isInCI = getenv('CI') === 'true' || getenv('GITHUB_ACTIONS') === 'true';
+
+// Configurar parâmetros de conexão de acordo com o ambiente
+if ($isInCI) {
+    // Ambiente de CI
+    $host = '127.0.0.1'; // Usar IP em vez de 'localhost' para forçar TCP/IP
+    $port = getenv('DB_PORT') ?: '3306';
+    $dbname = getenv('DB_DATABASE') ?: 'gerenciamento_despesas';
+    $username = getenv('DB_USERNAME') ?: 'root';
+    $password = getenv('DB_PASSWORD') ?: 'password';
+    echo "Ambiente: CI\n";
+} elseif ($isInDocker) {
     // Configuração para ambiente Docker
     $host = getenv('DB_HOST') ?: 'despesas_db';
     $port = getenv('DB_PORT') ?: '3306';
     $dbname = getenv('DB_DATABASE') ?: 'gerenciamento_despesas';
     $username = getenv('DB_USERNAME') ?: 'despesas';
     $password = getenv('DB_PASSWORD') ?: 'root';
-    echo "Conectando ao banco de dados em $host:$port\n";
+    echo "Ambiente: Docker\n";
+} else {
+    // Desenvolvimento local fora do Docker
+    $host = '127.0.0.1'; // Usar IP em vez de 'localhost' para forçar TCP/IP
+    $port = '3307';
+    $dbname = 'gerenciamento_despesas';
+    $username = 'despesas';
+    $password = 'root';
+    echo "Ambiente: Desenvolvimento local\n";
 }
 
+echo "Conectando ao banco de dados em $host:$port\n";
+
 try {
+    // Configurar opções de PDO para melhorar a conexão
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_TIMEOUT => 5, // Timeout em segundos
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4", 
+        // Forçar conexão TCP/IP
+        PDO::MYSQL_ATTR_DIRECT_QUERY => false,
+    ];
+
     // Primeiro, tenta conectar direto ao banco gerenciamento_despesas
     try {
         $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
-        $pdo = new PDO($dsn, $username, $password);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo = new PDO($dsn, $username, $password, $options);
         echo "Conectado ao banco de dados $dbname.\n";
     } catch (PDOException $e) {
         // Se não conseguir conectar, tenta conectar ao MySQL sem especificar o banco de dados
         // para verificar se o banco existe
         echo "Não foi possível conectar ao banco $dbname. Verificando conexão principal...\n";
         $dsn = "mysql:host=$host;port=$port";
-        $pdo = new PDO($dsn, $username, $password);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo = new PDO($dsn, $username, $password, $options);
         
         // Verificar se o banco de dados existe
         $stmt = $pdo->query("SHOW DATABASES LIKE '$dbname'");
@@ -159,5 +181,6 @@ try {
     
 } catch (PDOException $e) {
     echo "Erro ao conectar/processar o banco de dados: " . $e->getMessage() . "\n";
+    echo "Certifique-se que o serviço MySQL está rodando e acessível em $host:$port.\n";
     exit(1);
 } 
