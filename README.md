@@ -3,7 +3,7 @@
 API RESTful para gerenciamento de despesas pessoais, desenvolvida com Yii2 Framework.
 
 ![Licença](https://img.shields.io/badge/license-MIT-blue.svg)
-![PHP Version](https://img.shields.io/badge/PHP-8.0%2B-blue)
+![PHP Version](https://img.shields.io/badge/PHP-8.3%2B-blue)
 ![Yii2 Version](https://img.shields.io/badge/Yii2-2.0.47-green)
 
 ## 📋 Sobre o Projeto
@@ -17,7 +17,7 @@ Esta API permite o registro, visualização, edição e exclusão de despesas pe
 
 ## 🚀 Tecnologias Utilizadas
 
-- **PHP 8.0+**
+- **PHP 8.3+**
 - **Yii2 Framework**
 - **MySQL 5.7+**
 - **JWT para autenticação**

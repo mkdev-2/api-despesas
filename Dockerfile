@@ -1,4 +1,4 @@
-FROM php:8.1-fpm
+FROM php:8.3-fpm
 
 # Argumentos definidos no docker-compose.yml
 ARG user=www-data
