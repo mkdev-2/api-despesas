@@ -10,8 +10,15 @@ actor: FunctionalTester
 modules:
     enabled:
       - Filesystem
-      - Yii2
+      - Yii2:
+          part: [orm, fixtures, email, init]
+          configFile: 'config/test.php'
+          entryScript: 'index-test.php'
+          transaction: false
+          cleanup: false
       - Asserts
       - REST:
           depends: Yii2
           part: Json
+          url: ''
+      - \Helper\Functional
