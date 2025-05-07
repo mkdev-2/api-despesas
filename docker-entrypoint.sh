@@ -1,194 +1,144 @@
 #!/bin/bash
 set -e
 
-# Estilo para mensagens
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # Sem cor
+# Função para exibir mensagens coloridas
+function echo_color() {
+    COLOR=$1
+    MESSAGE=$2
+    RESET='\033[0m'
+    echo -e "${COLOR}${MESSAGE}${RESET}"
+}
 
-echo -e "${YELLOW}Inicializando o ambiente de desenvolvimento...${NC}"
+# Cores para mensagens
+INFO='\033[0;34m'  # Azul
+SUCCESS='\033[0;32m'  # Verde
+WARNING='\033[0;33m'  # Amarelo
+ERROR='\033[0;31m'  # Vermelho
 
-# Função de tratamento de erro
-error_exit() {
-    echo -e "${RED}Erro: $1${NC}" >&2
+echo_color $INFO "Inicializando o ambiente de desenvolvimento..."
+
+# Verificar se os arquivos de configuração existem
+if [ ! -f /var/www/html/config/db.php ]; then
+    echo_color $ERROR "Arquivo de configuração do banco de dados não encontrado!"
+    exit 1
+fi
+
+# Obter variáveis de ambiente ou definir valores padrão
+DB_HOST=${DB_HOST:-despesas_db}
+DB_DATABASE=${DB_DATABASE:-gerenciamento_despesas}
+DB_USERNAME=${DB_USERNAME:-despesas}
+DB_PASSWORD=${DB_PASSWORD:-root}
+DB_PORT=${DB_PORT:-3306}
+
+# Função para lidar com erros
+function handle_error() {
+    echo_color $ERROR "Erro: $1"
     exit 1
 }
 
 # Exibir informações de configuração do banco de dados
-echo -e "${YELLOW}Configuração do banco de dados:${NC}"
-echo "Host: $DB_HOST"
-echo "Banco: $DB_DATABASE"
-echo "Usuário: $DB_USERNAME"
-
-# Aguardar o banco de dados usando o wait
-echo -e "${YELLOW}Aguardando o banco de dados ficar disponível usando wait...${NC}"
-/wait
-
-# Função para verificar se o banco de dados está pronto
-check_db() {
-    php -r "
-    try {
-        \$dsn = 'mysql:host=${DB_HOST};dbname=${DB_DATABASE};port=${DB_PORT}';
-        \$pdo = new PDO(\$dsn, '${DB_USERNAME}', '${DB_PASSWORD}', [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_TIMEOUT => 5
-        ]);
-        echo 'connected';
-    } catch (PDOException \$e) {
-        echo \$e->getMessage();
-        exit(1);
-    }
-    "
+function show_db_config() {
+    echo_color $INFO "Configuração do banco de dados:"
+    echo "DB_HOST: $DB_HOST"
+    echo "DB_PORT: $DB_PORT"
+    echo "DB_DATABASE: $DB_DATABASE"
+    echo "DB_DATABASE_TEST: $DB_DATABASE_TEST"
+    echo "DB_USERNAME: $DB_USERNAME"
 }
 
-# Verificar a conexão após o wait
-echo -e "${YELLOW}Verificando conexão com o banco de dados...${NC}"
-if ! check_db | grep -q 'connected'; then
-    error_exit "Não foi possível conectar ao banco de dados após wait"
-fi
+# Aguardar o banco de dados ficar disponível
+show_db_config
+echo_color $INFO "Aguardando o banco de dados ficar disponível..."
 
-echo -e "${GREEN}Banco de dados disponível!${NC}"
-
-# Verificar se os diretórios essenciais existem
-for DIR in "runtime" "web/assets"; do
-    if [ ! -d "$DIR" ]; then
-        echo -e "${YELLOW}Criando diretório $DIR...${NC}"
-        mkdir -p "$DIR" || error_exit "Falha ao criar diretório $DIR"
+# Esperar o banco de dados ficar disponível
+max_tries=30
+tries=0
+while [ $tries -lt $max_tries ]; do
+    if mysqladmin ping -h "$DB_HOST" -P "$DB_PORT" -u root -ppassword --silent; then
+        echo_color $SUCCESS "Banco de dados disponível!"
+        break
     fi
-    
-    # Garantir permissões corretas
-    echo -e "${YELLOW}Aplicando permissões em $DIR...${NC}"
-    chmod -R 775 "$DIR" || error_exit "Falha ao aplicar permissões em $DIR"
-    chown -R www-data:www-data "$DIR" || error_exit "Falha ao aplicar permissões de proprietário em $DIR"
+    tries=$((tries+1))
+    if [ $tries -lt $max_tries ]; then
+        echo_color $WARNING "Tentativa $tries/$max_tries: Banco de dados ainda não está pronto. Aguardando 5 segundos..."
+        sleep 5
+    else
+        handle_error "Não foi possível conectar ao banco de dados após $max_tries tentativas."
+    fi
 done
 
-# Verificar arquivo de execução do Yii
+# Verificar se o arquivo .env existe
+if [ -f .env ]; then
+    echo_color $INFO "Arquivo .env já existe."
+else
+    echo_color $WARNING "Arquivo .env não encontrado. Criando..."
+    cp .env.example .env
+    echo_color $SUCCESS "Arquivo .env criado com sucesso!"
+fi
+
+# Aplicar permissões nos diretórios necessários
+echo_color $INFO "Aplicando permissões em runtime..."
+mkdir -p runtime
+chmod -R 777 runtime
+
+echo_color $INFO "Aplicando permissões em web/assets..."
+mkdir -p web/assets
+chmod -R 777 web/assets
+
+# Instalar dependências do Composer, se necessário
+if [ -f vendor/autoload.php ]; then
+    echo_color $INFO "Dependências já instaladas."
+else
+    echo_color $INFO "Instalando dependências..."
+    composer install --no-interaction
+    echo_color $SUCCESS "Dependências instaladas com sucesso!"
+fi
+
+# Executar inicialização do banco de dados se o script existir
+if [ -f scripts/init-db.sh ]; then
+    echo_color $INFO "Executando inicialização do banco de dados..."
+    bash scripts/init-db.sh || echo_color $WARNING "Aviso: Falha ao executar a inicialização do banco de dados."
+else
+    echo_color $WARNING "Script de inicialização do banco de dados não encontrado (scripts/init-db.sh)."
+fi
+
+# Marcar migrações existentes
+echo_color $INFO "Verificando e marcando migrações existentes..."
+if [ -f scripts/mark-migrations.php ]; then
+    DOCKER_ENV=1 php scripts/mark-migrations.php || echo_color $WARNING "Aviso: Falha ao marcar migrações existentes"
+else
+    echo_color $WARNING "Script mark-migrations.php não encontrado. Pulando."
+fi
+
+# Executar migrações do banco de dados
+echo_color $INFO "Executando migrações no banco de dados..."
+php yii migrate --interactive=0 || echo_color $WARNING "Aviso: Falha ao executar migrações, continuando mesmo assim..."
+
+# Preparar banco de dados de testes
+echo_color $INFO "Preparando banco de dados de testes..."
+if [ -f scripts/prepare-test-db.php ]; then
+    DOCKER_ENV=1 php scripts/prepare-test-db.php || echo_color $WARNING "Aviso: Falha ao preparar banco de dados de teste"
+else
+    echo_color $WARNING "Arquivo scripts/prepare-test-db.php não encontrado."
+fi
+
+# Conceder privilégios adicionais ao usuário do banco de dados (para resolver problemas de acesso)
+echo_color $INFO "Verificando privilégios do usuário do banco de dados..."
+mysql -h$DB_HOST -P$DB_PORT -uroot -ppassword -e "GRANT ALL PRIVILEGES ON $DB_DATABASE.* TO '$DB_USERNAME'@'%';" || echo_color $WARNING "Aviso: Não foi possível conceder privilégios"
+mysql -h$DB_HOST -P$DB_PORT -uroot -ppassword -e "GRANT ALL PRIVILEGES ON ${DB_DATABASE_TEST}.* TO '$DB_USERNAME'@'%';" || echo_color $WARNING "Aviso: Não foi possível conceder privilégios"
+mysql -h$DB_HOST -P$DB_PORT -uroot -ppassword -e "FLUSH PRIVILEGES;" || echo_color $WARNING "Aviso: Não foi possível atualizar privilégios"
+
+# Ajustar permissões finais
+echo_color $INFO "Ajustando permissões finais..."
+find /var/www/html -type d -exec chmod 755 {} \; 2>/dev/null || echo_color $WARNING "Aviso: Não foi possível ajustar permissões para diretórios"
+find /var/www/html -type f -exec chmod 644 {} \; 2>/dev/null || echo_color $WARNING "Aviso: Não foi possível ajustar permissões para arquivos"
+chmod -R 777 /var/www/html/runtime 2>/dev/null || echo_color $WARNING "Aviso: Não foi possível ajustar permissões para runtime"
+chmod -R 777 /var/www/html/web/assets 2>/dev/null || echo_color $WARNING "Aviso: Não foi possível ajustar permissões para web/assets"
 if [ -f "yii" ]; then
-    chmod 755 yii || error_exit "Falha ao aplicar permissão ao arquivo yii"
-else
-    error_exit "Arquivo yii não encontrado. Verifique a instalação."
+    chmod 755 yii 2>/dev/null || echo_color $WARNING "Aviso: Não foi possível ajustar permissões para o arquivo yii"
 fi
 
-# Instalar dependências com Composer se necessário
-if [ ! -d vendor ] || [ ! -f vendor/autoload.php ]; then
-    echo -e "${YELLOW}Instalando dependências via Composer...${NC}"
-    composer install --no-interaction --prefer-dist --optimize-autoloader || error_exit "Falha na instalação de dependências"
-    echo -e "${GREEN}Dependências instaladas!${NC}"
-else
-    echo -e "${GREEN}Dependências já instaladas.${NC}"
-fi
+echo_color $SUCCESS "Ambiente preparado com sucesso!"
 
-# Função para executar comando PHP com segurança
-execute_php() {
-    php -r "$1" || error_exit "Falha ao executar comando PHP: $1"
-}
-
-# Executar migrações no banco de dados
-echo -e "${YELLOW}Executando migrações no banco de dados...${NC}"
-php yii migrate --interactive=0 || error_exit "Falha ao executar migrações"
-echo -e "${GREEN}Migrações aplicadas!${NC}"
-
-# Verificar se já existem usuários no sistema
-USER_COUNT=$(execute_php "
-try {
-    \$dsn = 'mysql:host=${DB_HOST};dbname=${DB_DATABASE};port=${DB_PORT}';
-    \$pdo = new PDO(\$dsn, '${DB_USERNAME}', '${DB_PASSWORD}', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    \$stmt = \$pdo->query('SELECT COUNT(*) FROM user');
-    echo \$stmt->fetchColumn();
-} catch (PDOException \$e) {
-    echo '0';
-}
-")
-
-# Preparar banco de dados de teste com tratamento de erro
-echo -e "${YELLOW}Preparando banco de dados de testes...${NC}"
-php prepare-test-db.php || echo -e "${YELLOW}Aviso: Falha ao preparar banco de dados de teste${NC}"
-echo -e "${GREEN}Banco de dados de teste preparado!${NC}"
-
-# Inserir dados de demonstração para testes
-echo -e "${YELLOW}Inserindo dados de demonstração para testes...${NC}"
-php seed-test-db.php || echo -e "${YELLOW}Aviso: Falha ao inserir dados de teste${NC}"
-echo -e "${GREEN}Dados de teste inseridos!${NC}"
-
-# Inserir dados iniciais se não existirem usuários
-if [ "$USER_COUNT" -eq "0" ]; then
-    echo -e "${YELLOW}Criando usuário de demonstração...${NC}"
-    
-    # Criação do usuário demo com tratamento de erro
-    execute_php "
-        require_once 'vendor/autoload.php';
-        require_once 'vendor/yiisoft/yii2/Yii.php';
-        
-        \$config = require 'config/web.php';
-        new yii\\web\\Application(\$config);
-        
-        \$user = new app\\models\\User();
-        \$user->username = 'demo';
-        \$user->email = 'demo@example.com';
-        \$user->setPassword('demo123');
-        \$user->generateAuthKey();
-        if (!\$user->save()) {
-            throw new Exception('Falha ao criar usuário demo: ' . json_encode(\$user->errors));
-        }
-        
-        echo \"Usuário demo criado com sucesso!\\n\";
-    "
-    
-    echo -e "${YELLOW}Criando dados de exemplo para demonstração...${NC}"
-    
-    # Adicionar despesas de exemplo com tratamento de erro
-    execute_php "
-        require_once 'vendor/autoload.php';
-        require_once 'vendor/yiisoft/yii2/Yii.php';
-        
-        \$config = require 'config/web.php';
-        new yii\\web\\Application(\$config);
-        
-        \$user = app\\models\\User::findByUsername('demo');
-        
-        if (!\$user) {
-            throw new Exception('Usuário demo não encontrado');
-        }
-        
-        \$despesas = [
-            ['Mercado mensal', 'alimentacao', 450.00, '2023-01-10'],
-            ['Gasolina', 'transporte', 200.00, '2023-01-15'],
-            ['Cinema', 'lazer', 80.00, '2023-01-20'],
-            ['Conta de luz', 'moradia', 120.00, '2023-01-25'],
-            ['Restaurante', 'alimentacao', 150.00, '2023-02-05'],
-            ['Uber', 'transporte', 50.00, '2023-02-10'],
-            ['Show', 'lazer', 200.00, '2023-02-15'],
-            ['Internet', 'moradia', 100.00, '2023-02-20']
-        ];
-        
-        \$sucessos = 0;
-        foreach (\$despesas as \$d) {
-            \$despesa = new app\\models\\Despesa();
-            \$despesa->user_id = \$user->id;
-            \$despesa->descricao = \$d[0];
-            \$despesa->categoria = \$d[1];
-            \$despesa->valor = \$d[2];
-            \$despesa->data = \$d[3];
-            if (\$despesa->save()) {
-                \$sucessos++;
-            }
-        }
-        
-        echo \"Foram criadas {\$sucessos} despesas de exemplo para o usuário demo.\\n\";
-    "
-    
-    echo -e "${GREEN}Dados de demonstração criados!${NC}"
-else
-    echo -e "${GREEN}Já existem usuários no sistema. Pulando a criação dos dados de demonstração.${NC}"
-fi
-
-echo -e "${GREEN}Ambiente preparado com sucesso!${NC}"
-
-# Preparar o ambiente PHP-FPM para executar como www-data
-echo -e "${YELLOW}Ajustando permissões finais...${NC}"
-chown -R www-data:www-data /var/www/html
-echo -e "${GREEN}Permissões ajustadas!${NC}"
-
-# Executar o comando original (php-fpm)
+# Executar o comando original
 exec "$@" 

@@ -10,53 +10,79 @@ require __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 // Definir aliases
 Yii::setAlias('@tests', __DIR__ . '/../tests');
 
-// Carrega apenas as configurações essenciais para o console
-$db = require __DIR__ . '/../config/test_db.php';
-$config = [
-    'id' => 'basic-tests-console',
-    'basePath' => dirname(__DIR__),
-    'components' => [
-        'db' => $db,
-        'cache' => [
-            'class' => 'yii\caching\FileCache',
-        ],
-    ],
-];
+// Garantir que o host esteja correto
+// Quando estamos no container, devemos usar despesas_db
+// Quando estamos fora do container, devemos usar localhost
+$isInContainer = getenv('DOCKER_ENV') === '1' || file_exists('/.dockerenv');
+$host = $isInContainer ? 'despesas_db' : 'localhost';
+$port = $isInContainer ? 3306 : 3307;
+$dbName = 'gerenciamento_despesas_test';
+$username = 'despesas';
+$password = 'root';
 
-// Conectar ao banco de dados e verificar se existe
+echo "Ambiente: " . ($isInContainer ? "Dentro do contêiner Docker" : "Fora do contêiner Docker") . "\n";
+echo "Host: $host\n";
+echo "Porta: $port\n";
+
 try {
-    // Extrair o nome do banco de dados da string DSN
-    preg_match('/dbname=([^;]*)/', $db['dsn'], $matches);
-    $dbName = $matches[1];
+    // Conectar primeiro sem especificar o banco de dados
+    $dsn = "mysql:host=$host;port=$port";
+    $pdo = new PDO($dsn, $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Conectar sem especificar o banco de dados
-    $dsn = str_replace("dbname=$dbName", '', $db['dsn']);
-    $pdo = new PDO($dsn, $db['username'], $db['password']);
+    echo "Conectando ao servidor de banco de dados em $host...\n";
     
-    // Dropar o banco de dados se existir
-    $pdo->exec("DROP DATABASE IF EXISTS $dbName");
-    echo "Banco de dados $dbName removido.\n";
+    // Verificar se o usuário tem privilégios para criar/modificar o banco de dados
+    try {
+        // Testar se o usuário tem permissão para criar/modificar o banco de dados
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        echo "Permissões verificadas, usuário tem privilégios adequados.\n";
+    } catch (PDOException $e) {
+        // Se não tiver permissão, tentar conectar como root
+        echo "Usuário $username não tem permissão para criar o banco de dados. Tentando como root...\n";
+        try {
+            $rootPdo = new PDO("mysql:host=$host;port=$port", 'root', 'password');
+            $rootPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Dropar o banco de dados se existir
+            $rootPdo->exec("DROP DATABASE IF EXISTS `$dbName`");
+            echo "Banco de dados $dbName removido.\n";
+            
+            // Criar banco de dados
+            $rootPdo->exec("CREATE DATABASE `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            echo "Banco de dados $dbName criado.\n";
+            
+            // Garantir que o usuário tenha permissões adequadas
+            $rootPdo->exec("GRANT ALL PRIVILEGES ON `$dbName`.* TO '$username'@'%'");
+            $rootPdo->exec("FLUSH PRIVILEGES");
+            echo "Permissões concedidas ao usuário $username.\n";
+            
+            // Fechar conexão root
+            $rootPdo = null;
+        } catch (PDOException $rootError) {
+            echo "Erro ao tentar como root: " . $rootError->getMessage() . "\n";
+            echo "Por favor, certifique-se de que o banco de dados existe e que o usuário $username tem privilégios adequados.\n";
+            exit(1);
+        }
+    }
     
-    // Criar banco de dados
-    $pdo->exec("CREATE DATABASE $dbName CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    echo "Banco de dados $dbName criado.\n";
-    
-    // Selecionar banco de dados
-    $pdo->exec("USE $dbName");
+    // Selecionar banco de dados recém-criado
+    $pdo->exec("USE `$dbName`");
+    echo "Usando banco de dados $dbName.\n";
     
     // Criar tabela de usuários manualmente para evitar problemas de ordem
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS `users` (
           `id` int(11) NOT NULL AUTO_INCREMENT,
-          `username` varchar(255) NOT NULL,
+          `username` varchar(50) NOT NULL,
           `email` varchar(255) NOT NULL,
-          `auth_key` varchar(32) NOT NULL,
+          `auth_key` varchar(32) DEFAULT NULL,
           `password_hash` varchar(255) NOT NULL,
           `password_reset_token` varchar(255) DEFAULT NULL,
           `status` tinyint(1) NOT NULL DEFAULT 10,
-          `created_at` datetime NOT NULL,
-          `updated_at` datetime NOT NULL,
-          `deleted_at` datetime DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          `deleted_at` timestamp NULL DEFAULT NULL,
           PRIMARY KEY (`id`),
           UNIQUE KEY `username` (`username`),
           UNIQUE KEY `email` (`email`),
@@ -75,15 +101,15 @@ try {
           `categoria` varchar(50) NOT NULL,
           `valor` decimal(10,2) NOT NULL,
           `data` date NOT NULL,
-          `created_at` datetime NOT NULL,
-          `updated_at` datetime NOT NULL,
-          `deleted_at` datetime DEFAULT NULL,
+          `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          `deleted_at` timestamp NULL DEFAULT NULL,
           PRIMARY KEY (`id`),
           KEY `idx_despesas_user_id` (`user_id`),
           KEY `idx_despesas_categoria` (`categoria`),
           KEY `idx_despesas_data` (`data`),
           KEY `idx_despesas_deleted_at` (`deleted_at`),
-          CONSTRAINT `fk-despesas-user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+          CONSTRAINT `fk_despesas_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
     
@@ -96,15 +122,19 @@ try {
 
 // Preencher a tabela de usuário com dados iniciais para os testes
 try {
-    // Adicionar usuário de teste para os fixtures
+    // Gerar um hash de senha seguro para usuários de teste
+    $passwordHash = password_hash("test123", PASSWORD_BCRYPT, ["cost" => 13]);
+    
+    // Adicionar usuários de teste
     $timestamp = date('Y-m-d H:i:s');
     $pdo->exec("
         INSERT INTO `users` (`id`, `username`, `email`, `auth_key`, `password_hash`, `status`, `created_at`, `updated_at`)
         VALUES
-        (1, 'admin', 'admin@example.com', 'test100key', '$2y$13$F8oA1DnpOKY0zWB4W.RZXevrZr4Cvw4jc0t9/lg5fvK8R9aNbJ5rm', 10, '$timestamp', '$timestamp'),
-        (2, 'demo', 'demo@example.com', 'test101key', '$2y$13$F8oA1DnpOKY0zWB4W.RZXevrZr4Cvw4jc0t9/lg5fvK8R9aNbJ5rm', 10, '$timestamp', '$timestamp'),
-        (3, 'test', 'test@example.com', 'test102key', '$2y$13$F8oA1DnpOKY0zWB4W.RZXevrZr4Cvw4jc0t9/lg5fvK8R9aNbJ5rm', 10, '$timestamp', '$timestamp'),
-        (4, 'user', 'user@example.com', 'test103key', '$2y$13$F8oA1DnpOKY0zWB4W.RZXevrZr4Cvw4jc0t9/lg5fvK8R9aNbJ5rm', 10, '$timestamp', '$timestamp')
+        (1, 'admin', 'admin@example.com', 'test100key', '$passwordHash', 10, '$timestamp', '$timestamp'),
+        (2, 'demo', 'demo@example.com', 'test101key', '$passwordHash', 10, '$timestamp', '$timestamp'),
+        (3, 'test', 'test@example.com', 'test102key', '$passwordHash', 10, '$timestamp', '$timestamp'),
+        (4, 'user', 'user@example.com', 'test103key', '$passwordHash', 10, '$timestamp', '$timestamp')
+        ON DUPLICATE KEY UPDATE `updated_at` = '$timestamp';
     ");
     
     echo "Dados iniciais de usuários inseridos com sucesso.\n";
@@ -130,7 +160,9 @@ try {
         ('m000000_000000_base', UNIX_TIMESTAMP()),
         ('m230101_000001_create_despesas_table', UNIX_TIMESTAMP()),
         ('m250118_194946_create_users_table', UNIX_TIMESTAMP()),
-        ('m250118_195453_create_despesas_table', UNIX_TIMESTAMP())
+        ('m250118_195453_create_despesas_table', UNIX_TIMESTAMP()),
+        ('m250118_201422_optimize_database', UNIX_TIMESTAMP())
+        ON DUPLICATE KEY UPDATE `apply_time` = UNIX_TIMESTAMP();
     ");
     
     echo "Tabela de migração configurada com sucesso.\n";
@@ -140,9 +172,46 @@ try {
     exit(1);
 }
 
-// Executar apenas migrações que ainda não foram aplicadas
-$application = new yii\console\Application($config);
-$exitCode = $application->runAction('migrate', ['interactive' => false]);
+// Configurar o banco de dados para o Yii
+$db = [
+    'class' => 'yii\db\Connection',
+    'dsn' => "mysql:host=$host;port=$port;dbname=$dbName",
+    'username' => $username,
+    'password' => $password,
+    'charset' => 'utf8mb4',
+];
 
-echo "Banco de dados de testes preparado com sucesso.\n";
-exit($exitCode); 
+// Carrega apenas as configurações essenciais para o console
+$config = [
+    'id' => 'basic-tests-console',
+    'basePath' => dirname(__DIR__),
+    'components' => [
+        'db' => $db,
+        'cache' => [
+            'class' => 'yii\caching\FileCache',
+        ],
+    ],
+    'modules' => [
+        'api' => [
+            'class' => 'app\modules\api\Module',
+            'modules' => [
+                'v1' => [
+                    'class' => 'app\modules\api\v1\Module',
+                ],
+            ],
+        ],
+    ],
+];
+
+// Executar apenas migrações que ainda não foram aplicadas
+try {
+    $application = new yii\console\Application($config);
+    $exitCode = $application->runAction('migrate', ['interactive' => false]);
+    
+    echo "Banco de dados de testes preparado com sucesso.\n";
+    exit($exitCode);
+} catch (Exception $e) {
+    echo "Erro ao executar migrações Yii: " . $e->getMessage() . "\n";
+    echo "Banco de dados configurado, mas algumas migrações podem não ter sido aplicadas.\n";
+    exit(1);
+} 
