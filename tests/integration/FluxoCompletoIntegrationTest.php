@@ -1,16 +1,16 @@
 <?php
 
+namespace tests\integration;
+
 use Codeception\Test\Unit;
 use Codeception\Util\HttpCode;
-use app\modules\api\v1\controllers\DespesaController;
-use app\modules\api\v1\controllers\AuthController;
 use app\modules\usuarios\models\User;
 use app\modules\financeiro\models\Despesa;
+use app\modules\api\v1\controllers\DespesaController;
+use app\modules\api\v1\controllers\AuthController;
 use yii\web\Request;
 use yii\web\Response;
-
-// Incluir a classe MockSession para manipulação da sessão durante testes
-require_once __DIR__ . '/../_support/MockSession.php';
+use tests\support\MockSession;
 
 /**
  * Teste de integração do fluxo completo de autenticação e gerenciamento de despesas

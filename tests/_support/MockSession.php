@@ -1,8 +1,7 @@
 <?php
+namespace tests\support;
 
 use yii\web\Session;
-use ArrayAccess;
-use IteratorAggregate;
 
 /**
  * Classe MockSession para lidar com problemas de sessão durante testes
@@ -11,7 +10,7 @@ use IteratorAggregate;
  * evitando problemas relacionados a sessões já iniciadas e headers já enviados,
  * que são comuns em testes com Codeception.
  */
-class MockSession extends Session implements ArrayAccess, IteratorAggregate
+class MockSession extends Session implements \ArrayAccess, \IteratorAggregate
 {
     private $data = [];
     

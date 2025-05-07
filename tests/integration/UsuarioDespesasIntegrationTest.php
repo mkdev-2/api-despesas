@@ -1,11 +1,12 @@
 <?php
 
-use app\modules\financeiro\models\Despesa;
-use app\modules\usuarios\models\User;
-use Codeception\Test\Unit;
+namespace tests\integration;
 
-// Incluir a classe MockSession para manipulação da sessão durante testes
-require_once __DIR__ . '/../_support/MockSession.php';
+use app\modules\usuarios\models\User;
+use app\modules\financeiro\models\Despesa;
+use Codeception\Test\Unit;
+use yii\web\Response;
+use tests\support\MockSession;
 
 /**
  * Teste de integração entre usuários e despesas
