@@ -64,7 +64,17 @@ jobs:
     - name: Prepare test database
       run: php scripts/prepare-test-db.php
 
-    # Iniciar servidor web PHP para testes funcionais
+    # Preparar configuração específica de CI para testes funcionais
+    - name: Prepare CI test configuration
+      run: |
+        # Backup da configuração original
+        cp tests/functional.suite.yml tests/functional.suite.yml.bak
+        # Copiar a configuração otimizada para CI
+        cp tests/ci-functional.suite.yml tests/functional.suite.yml
+        # Reconstruir o arquivo de configuração para testes
+        vendor/bin/codecept build
+
+    # Opcionalmente inicia o servidor web, mas não depende dele para os testes
     - name: Start PHP built-in server
       run: |
         php -S localhost:8080 -t web/ &
@@ -75,8 +85,8 @@ jobs:
     - name: Run unit and integration tests
       run: vendor/bin/codecept run unit,integration
 
-    # Executar testes funcionais separadamente, com retry
-    - name: Run functional tests
+    # Executar testes funcionais usando a configuração específica para CI
+    - name: Run functional tests with CI configuration
       run: |
         max_attempts=3
         attempt=1

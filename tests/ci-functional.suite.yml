@@ -1,0 +1,23 @@
+# Codeception Test Suite Configuration para CI
+
+# Esta suíte é otimizada para testes em ambiente de CI,
+# onde não temos garantia de que um servidor web estará disponível.
+# Em vez de usar PhpBrowser, usamos diretamente o módulo Yii2.
+
+actor: FunctionalTester
+modules:
+    enabled:
+      - Filesystem
+      - Yii2:
+          part: [orm, fixtures, email, rest]
+          configFile: 'config/test.php'
+          transaction: false
+          cleanup: false
+      - Asserts
+      - \Helper\Functional
+    config:
+        Yii2:
+            headers:
+                Content-Type: 'application/json'
+                Accept: 'application/json'
+                X-Requested-With: 'XMLHttpRequest' 
