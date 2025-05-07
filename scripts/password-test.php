@@ -1,10 +1,10 @@
 <?php
 // Script para testar a validação de senha do hash no fixture
 
-require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 
-$config = require __DIR__ . '/config/web.php';
+$config = require __DIR__ . '/../config/web.php';
 new yii\web\Application($config);
 
 $hash = '$2y$13$9GVMKQ7jp.s4wY.G/5s.IOuLM8Cl2mofmZbeW1MPCRs7hpdhVAeDa';
