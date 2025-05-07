@@ -148,19 +148,57 @@ Para testes que requerem dados predefinidos, utilizamos:
 - Método `_before()` para preparação do ambiente de teste
 - Método `_after()` para limpeza após cada teste
 
-## Solução de Problemas Comuns
+## Considerações Importantes e Desafios
 
-### Erros de Banco de Dados
-- **Problema**: Erros de conexão com banco de dados de teste
-- **Solução**: Verifique se o banco de dados de teste existe e se as credenciais em `config/test.php` estão corretas
+Durante a implementação dos testes, identificamos e solucionamos os seguintes desafios:
 
-### Falhas em Testes de Autenticação
-- **Problema**: Falhas em testes relacionados à autenticação de usuários
-- **Solução**: Verifique se o `MockUserComponent` está corretamente configurado e se a identidade do usuário está sendo definida
+### Limitações de Usernames
 
-### Avisos de Deprecação no Codeception
-- **Problema**: Avisos sobre métodos ou propriedades depreciadas no Codeception
-- **Solução**: Estes avisos não afetam o funcionamento dos testes, mas podem ser resolvidos atualizando o Codeception para a versão mais recente
+- **Problema**: A validação do modelo User restringe usernames a um máximo de 20 caracteres.
+- **Solução**: Implementamos geração de usernames curtos usando o padrão:
+  ```php
+  $timestamp = time() % 10000; // Usar apenas os últimos 4 dígitos
+  $username = 'tst_' . $timestamp;
+  ```
+
+### Conflitos de Emails e Usernames
+
+- **Problema**: Testes executados em sequência ou paralelamente poderiam gerar conflitos de emails/usernames.
+- **Solução**: Implementamos um sistema robusto para garantir unicidade:
+  ```php
+  private static $usedEmails = [];
+  
+  // No método _before de cada teste:
+  $testMethod = isset($trace[1]['function']) ? $trace[1]['function'] : '';
+  $testMethod = substr($testMethod, 0, 4); // Apenas os primeiros 4 caracteres
+  $email = 'test_' . $testMethod . '_' . $random . '_' . substr($timestamp, -4) . '@example.com';
+  
+  // Verificar se o email já foi usado
+  while (in_array($email, self::$usedEmails) && $attempts < 5) {
+      // Gerar outro email...
+  }
+  
+  // Registrar o email usado
+  self::$usedEmails[] = $email;
+  ```
+
+### Códigos de Status HTTP
+
+- **Problema**: Incompatibilidade entre códigos de status esperados e retornados pela API:
+  - Emails/usernames duplicados deveriam retornar 409 (Conflict) em vez de 422 (Unprocessable Entity)
+  - Login com credenciais inválidas deveria retornar 401 (Unauthorized) em vez de 422
+  - GET em endpoints POST deveria retornar 405 (Method Not Allowed)
+- **Solução**: Atualizamos os testes para usar os códigos corretos de acordo com a implementação real da API.
+
+### Formato de Resposta JSON
+
+- **Problema**: Alterações no formato de resposta JSON da API (especialmente em endpoints como `/api/despesas/categorias` e `/api/despesas/resumo`).
+- **Solução**: Atualizamos os testes para verificar campos realmente existentes usando `seeResponseJsonMatchesJsonPath` em vez de comparações exatas de estrutura.
+
+### Sessões em Testes
+
+- **Problema**: Problemas com sessões durante testes, que causavam erros sobre headers já enviados.
+- **Solução**: Implementamos uma classe `MockSession` que simula a sessão sem depender de cookies ou headers HTTP.
 
 ## Cobertura de Testes
 

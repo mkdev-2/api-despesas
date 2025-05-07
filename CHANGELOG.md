@@ -20,11 +20,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ### Modificado
 - Reorganização da estrutura de diretórios para arquitetura modular
 - Migração para PHP 8.1
+- Atualização da documentação para refletir o comportamento real da API e as melhorias nos testes
 
 ### Corrigido
 - Problemas com CORS em requisições de API
 - Validação de dados de entrada
+- Testes funcionais para conformidade com a API real:
+  - Geração de usernames únicos respeitando o limite de 20 caracteres
+  - Códigos de status HTTP adequados para diferentes cenários de erro
+  - Verificação do formato de resposta JSON nos endpoints `/api/despesas/categorias` e `/api/despesas/resumo`
+  - Problemas de conflito com emails/usernames duplicados durante a execução sequencial de testes
+  - Problemas de sessão e headers HTTP durante testes funcionais
 
-## [0.1.0] - 2024-05-30
+## [0.1.0] - 2025-05-07
 
 - Versão inicial do projeto 

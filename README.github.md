@@ -29,8 +29,8 @@ Esta API permite o registro, visualização, edição e exclusão de despesas pe
 
 ```bash
 # Clone o repositório
-git clone https://github.com/mkdev-2/api-despesas.git
-cd api-despesas
+git clone https://github.com/seu-usuario/gerenciamento-despesas.git
+cd gerenciamento-despesas/backend
 
 # Configure o ambiente
 cp .env.example .env
@@ -55,6 +55,7 @@ O projeto segue uma arquitetura modular com:
 - [Documentação de testes](tests/README.md)
 
 ## 🧪 Testes
+- [Frontend para Teste Web](em breve)
 
 ```bash
 # Prepare o ambiente de teste
@@ -85,4 +86,4 @@ Todos os testes estão passando com sucesso, garantindo a qualidade e confiabili
 
 ## 📝 Licença
 
-Distribuído sob a licença MIT. Veja `LICENSE` para mais informações. 
+Distribuído sob a licença MIT. 

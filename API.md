@@ -74,6 +74,30 @@ Cria uma nova conta de usuário.
 }
 ```
 
+**Respostas de Erro:**
+- `409 Conflict`: Email ou username já em uso
+  ```json
+  {
+      "error": "Email já está em uso"
+  }
+  ```
+  ou
+  ```json
+  {
+      "error": "Nome de usuário já está em uso"
+  }
+  ```
+- `422 Unprocessable Entity`: Dados inválidos (ex: username muito longo, email inválido)
+  ```json
+  {
+      "error": "Não foi possível criar o usuário",
+      "errors": {
+          "username": ["O nome de usuário deve ter no máximo 20 caracteres"],
+          "email": ["Email inválido"]
+      }
+  }
+  ```
+
 #### Login de Usuário
 
 ```
@@ -101,6 +125,21 @@ Autentica um usuário existente.
     }
 }
 ```
+
+**Respostas de Erro:**
+- `400 Bad Request`: Campos obrigatórios ausentes
+  ```json
+  {
+      "error": "Email e senha são obrigatórios"
+  }
+  ```
+- `401 Unauthorized`: Credenciais inválidas
+  ```json
+  {
+      "error": "Credenciais inválidas"
+  }
+  ```
+- `405 Method Not Allowed`: Método não permitido (ex: tentativa de GET em endpoint POST)
 
 #### Perfil do Usuário
 
@@ -416,12 +455,13 @@ Retorna relatórios detalhados com insights e tendências.
 - `200 OK`: Requisição bem-sucedida
 - `201 Created`: Recurso criado com sucesso
 - `204 No Content`: Requisição bem-sucedida sem conteúdo de resposta
-- `400 Bad Request`: Requisição inválida
-- `401 Unauthorized`: Falha de autenticação
+- `400 Bad Request`: Requisição inválida (por exemplo, campos obrigatórios ausentes)
+- `401 Unauthorized`: Falha de autenticação ou credenciais inválidas
 - `403 Forbidden`: Acesso proibido
 - `404 Not Found`: Recurso não encontrado
-- `409 Conflict`: Conflito (ex: email já em uso)
-- `422 Unprocessable Entity`: Erro de validação
+- `405 Method Not Allowed`: Método HTTP não permitido para o endpoint (por exemplo, GET em um endpoint exclusivo para POST)
+- `409 Conflict`: Conflito (por exemplo, email ou username já em uso durante o registro)
+- `422 Unprocessable Entity`: Erro de validação nos dados submetidos
 - `500 Internal Server Error`: Erro interno do servidor
 
 ## Formatos de Data
