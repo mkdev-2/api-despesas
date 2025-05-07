@@ -2,7 +2,7 @@
 
 namespace app\services;
 
-use app\models\Despesa;
+use app\modules\financeiro\models\Despesa;
 use Yii;
 use yii\db\Expression;
 use yii\helpers\ArrayHelper;

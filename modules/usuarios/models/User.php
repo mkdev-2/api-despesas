@@ -8,6 +8,8 @@ use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\ValidationData;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use app\modules\financeiro\models\Despesa;
+use yii\db\Expression;
+use yii\behaviors\TimestampBehavior;
 
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -16,6 +18,23 @@ class User extends ActiveRecord implements IdentityInterface
     public static function tableName()
     {
         return 'users';
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function behaviors()
+    {
+        return [
+            'timestamp' => [
+                'class' => TimestampBehavior::class,
+                'attributes' => [
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+                ],
+                'value' => new Expression('NOW()'),
+            ],
+        ];
     }
 
     public function rules()

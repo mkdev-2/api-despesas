@@ -3,7 +3,7 @@
 namespace tests\unit\models;
 require_once __DIR__ . '/../fixtures/UserFixture.php';
 
-use app\models\User;
+use app\modules\usuarios\models\User;
 use Codeception\Test\Unit;
 use Lcobucci\JWT\Builder;
 use Lcobucci\JWT\Signer\Hmac\Sha256;

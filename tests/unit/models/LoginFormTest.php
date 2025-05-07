@@ -2,8 +2,8 @@
 
 namespace tests\unit\models;
 
-use app\models\LoginForm;
-use app\models\User;
+use app\modules\usuarios\models\LoginForm;
+use app\modules\usuarios\models\User;
 use tests\unit\MockUserComponent;
 use tests\unit\widgets\MockSession;
 use Yii;

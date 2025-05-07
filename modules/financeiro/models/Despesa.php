@@ -274,16 +274,8 @@ class Despesa extends ActiveRecord
      */
     public function softDelete()
     {
-        $this->deleted_at = new Expression('NOW()');
+        $this->deleted_at = date('Y-m-d H:i:s');
         return $this->save(false);
-    }
-    
-    /**
-     * Define um escopo para retornar apenas despesas ativas (não excluídas)
-     */
-    public function active()
-    {
-        return $this->andWhere(['deleted_at' => null]);
     }
     
     /**
@@ -325,6 +317,15 @@ class DespesaQuery extends ActiveQuery
     {
         parent::__construct($modelClass, $config);
         // Inicializa query com condições/ordenações padrão se necessário
+    }
+    
+    /**
+     * Método para debug que retorna a consulta SQL
+     */
+    public function getSql()
+    {
+        $command = $this->createCommand();
+        return $command->getRawSql();
     }
     
     /**
@@ -374,6 +375,8 @@ class DespesaQuery extends ActiveQuery
      */
     public function active()
     {
-        return $this->andWhere(['deleted_at' => null]);
+        // Usamos a condição SQL crua para garantir que a consulta use IS NULL corretamente
+        $this->andWhere(['IS', 'deleted_at', null]);
+        return $this;
     }
 } 

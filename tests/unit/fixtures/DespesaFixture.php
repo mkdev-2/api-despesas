@@ -6,7 +6,7 @@ use yii\test\ActiveFixture;
 
 class DespesaFixture extends ActiveFixture
 {
-    public $modelClass = 'app\models\Despesa';
+    public $modelClass = 'app\modules\financeiro\models\Despesa';
     public $dataFile = '@tests/unit/fixtures/data/despesa.php';
     
     public $depends = [

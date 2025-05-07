@@ -2,100 +2,111 @@
 
 namespace tests\unit;
 
-use app\models\User;
-use Yii;
+use Closure;
+use app\modules\usuarios\models\User;
+use yii\base\Component;
+use yii\web\IdentityInterface;
 
 /**
- * Mock do componente User para testes de autenticação
+ * Componente mock para o `user` no Yii
+ * 
+ * Este componente permite simular o componente de usuário do Yii
+ * durante os testes, evitando a necessidade de usar cookies ou sessão.
+ * 
+ * @property-read bool $isGuest Se o usuário atual é um convidado (não autenticado)
+ * @property-read IdentityInterface|User $identity A identidade do usuário atual
+ * @property-read int|string $id ID do usuário atual
+ * @property-read \app\modules\usuarios\models\User|null O usuário autenticado
  */
-class MockUserComponent
+class MockUserComponent extends Component
 {
     /**
-     * @var bool Se o usuário está autenticado
+     * @var IdentityInterface|null
      */
-    public $isGuest = true;
+    private $_identity = null;
     
     /**
-     * @var \app\models\User|null O usuário autenticado
+     * @var Closure|null Callback para eventos
      */
-    private $identity = null;
+    private $_event = null;
     
     /**
-     * @var int ID do usuário autenticado
+     * Realiza login do usuário
+     * 
+     * @param \app\modules\usuarios\models\User $identity
+     * @return bool se o login foi bem-sucedido
      */
-    public $id = null;
-    
-    /**
-     * @var int Duração do cookie de autenticação em segundos
-     */
-    public $enableAutoLogin = false;
-    
-    /**
-     * @var int Tempo de vida da sessão em segundos
-     */
-    public $authTimeout = 3600;
-    
-    /**
-     * Verifica se o usuário é um visitante (não autenticado)
-     * @return bool
-     */
-    public function getIsGuest()
+    public function login($identity)
     {
-        return $this->isGuest;
-    }
-    
-    /**
-     * Faz login de um usuário
-     * @param \app\models\User $identity
-     * @param int $duration Duração em segundos
-     * @return bool
-     */
-    public function login($identity, $duration = 0)
-    {
-        $this->identity = $identity;
-        $this->isGuest = false;
-        $this->id = $identity ? $identity->getId() : null;
+        $this->_identity = $identity;
+        
+        if ($this->_event !== null) {
+            $e = new \stdClass();
+            $e->identity = $identity;
+            call_user_func($this->_event, $e);
+        }
+        
         return true;
     }
     
     /**
-     * Faz logout do usuário
+     * Realiza logout do usuário
+     * 
      * @return bool
      */
     public function logout()
     {
-        $this->identity = null;
-        $this->isGuest = true;
-        $this->id = null;
+        $this->_identity = null;
         return true;
     }
     
     /**
-     * Retorna a identidade do usuário atual
-     * @return \app\models\User|null
+     * Obtém a identidade do usuário atual
+     * 
+     * @return \app\modules\usuarios\models\User|null
      */
     public function getIdentity()
     {
-        return $this->identity;
+        return $this->_identity;
     }
     
     /**
      * Define a identidade do usuário atual
-     * @param \app\models\User|null $identity
+     * 
+     * @param \app\modules\usuarios\models\User|null $identity
      */
     public function setIdentity($identity)
     {
-        $this->identity = $identity;
-        $this->isGuest = $identity === null;
-        $this->id = $identity ? $identity->getId() : null;
+        $this->_identity = $identity;
     }
     
     /**
-     * Retorna o ID do usuário atual
-     * @return int|null
+     * Verifica se o usuário atual é um convidado (não autenticado)
+     * 
+     * @return bool
+     */
+    public function getIsGuest()
+    {
+        return $this->_identity === null;
+    }
+    
+    /**
+     * Obtém o ID do usuário atual
+     * 
+     * @return int|string|null
      */
     public function getId()
     {
-        return $this->id;
+        return $this->_identity !== null ? $this->_identity->getId() : null;
+    }
+    
+    /**
+     * Define o callback a ser chamado nos eventos
+     * 
+     * @param Closure $callback
+     */
+    public function onAfterLogin(Closure $callback)
+    {
+        $this->_event = $callback;
     }
 } 

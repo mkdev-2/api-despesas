@@ -1,7 +1,7 @@
 <?php
 
-use app\models\Despesa;
-use app\models\User;
+use app\modules\financeiro\models\Despesa;
+use app\modules\usuarios\models\User;
 use Codeception\Test\Unit;
 
 // Incluir a classe MockSession para manipulação da sessão durante testes
@@ -199,22 +199,23 @@ class UsuarioDespesasIntegrationTest extends Unit
             ->one();
             
         $this->assertNotNull($despesa, 'Deveria existir pelo menos uma despesa não deletada');
+        $id = $despesa->id;
         
-        // Realizar soft delete
-        $despesa->deleted_at = date('Y-m-d H:i:s');
-        $despesa->save(false);
+        // Realizar soft delete usando o método softDelete()
+        $resultado = $despesa->softDelete();
+        $this->assertTrue($resultado, 'O método softDelete() deveria retornar true');
         
-        // Verificar que a despesa não aparece mais nas consultas normais
+        // Consulta manual para verificar se despesas excluídas não aparecem
         $despesaAtiva = Despesa::find()
-            ->active() // Usa o escopo que filtra deleted_at IS NULL
-            ->where(['id' => $despesa->id])
+            ->where(['id' => $id])
+            ->andWhere(['deleted_at' => null])
             ->one();
             
-        $this->assertNull($despesaAtiva, 'A despesa não deveria mais aparecer como ativa');
+        $this->assertNull($despesaAtiva, 'A despesa não deveria ser encontrada quando buscamos por deleted_at = null');
         
         // Verificar que a despesa ainda existe no banco
         $despesaDeletada = Despesa::find()
-            ->where(['id' => $despesa->id])
+            ->where(['id' => $id])
             ->one();
             
         $this->assertNotNull($despesaDeletada, 'A despesa ainda deveria existir no banco');

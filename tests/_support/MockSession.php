@@ -1,17 +1,24 @@
 <?php
 
-use yii\web\SessionInterface;
+use yii\web\Session;
+use ArrayAccess;
+use IteratorAggregate;
 
 /**
  * Classe MockSession para lidar com problemas de sessão durante testes
  * 
- * Esta classe implementa yii\web\SessionInterface e substitui a sessão padrão 
- * do Yii2 durante os testes, evitando problemas relacionados a sessões já iniciadas 
- * e headers já enviados, que são comuns em testes com Codeception.
+ * Esta classe substitui a sessão padrão do Yii2 durante os testes, 
+ * evitando problemas relacionados a sessões já iniciadas e headers já enviados,
+ * que são comuns em testes com Codeception.
  */
-class MockSession implements SessionInterface
+class MockSession extends Session implements ArrayAccess, IteratorAggregate
 {
     private $data = [];
+    
+    public function init()
+    {
+        // Não fazer nada, para evitar que a sessão real seja inicializada
+    }
     
     public function get($key, $defaultValue = null)
     {
@@ -72,9 +79,13 @@ class MockSession implements SessionInterface
         return $this->has($key);
     }
     
-    public function getAllFlashes()
+    public function getAllFlashes($delete = false)
     {
-        return $this->data;
+        $flashes = $this->data;
+        if ($delete) {
+            $this->data = [];
+        }
+        return $flashes;
     }
     
     public function removeFlash($key)
@@ -200,5 +211,14 @@ class MockSession implements SessionInterface
     public function offsetUnset($offset)
     {
         $this->remove($offset);
+    }
+    
+    /**
+     * Sobrescrever o método writeSession para evitar o envio de headers
+     */
+    public function writeSession($id, $data)
+    {
+        // Não fazer nada para evitar o envio de headers
+        return true;
     }
 } 

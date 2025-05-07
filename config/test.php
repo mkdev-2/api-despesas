@@ -35,7 +35,7 @@ $config = [
             ],
         ],
         'urlManager' => [
-            'showScriptName' => true,
+            'showScriptName' => false,
             'enablePrettyUrl' => true,
             'rules' => [
                 // Rota de índice para a API v1

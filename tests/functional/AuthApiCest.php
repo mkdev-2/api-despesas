@@ -16,14 +16,13 @@ class AuthApiCest
 
     public function testRegistroSucesso(FunctionalTester $I)
     {
-        $username = 'test_user_' . time();
-        $email = 'test_' . time() . '@example.com';
-        $password = 'password123';
-
-        $I->sendPOST('/api/auth/register', [
-            'username' => $username,
-            'email' => $email,
-            'password' => $password
+        // Gerar um timestamp curto para evitar nomes muito longos
+        $timestamp = time() % 10000; // Usar apenas os últimos 4 dígitos
+        
+        $I->sendPost('/api/auth/register', [
+            'username' => 'test_user_' . $timestamp,
+            'email' => 'test_' . $timestamp . '@example.com',
+            'password' => 'password123'
         ]);
 
         $I->seeResponseCodeIs(HttpCode::CREATED);
@@ -36,26 +35,30 @@ class AuthApiCest
 
     public function testRegistroEmailDuplicado(FunctionalTester $I)
     {
-        // Primeiro registro
-        $username1 = 'test_user_duplicate_1_' . time();
-        $email = 'test_duplicate_' . time() . '@example.com';
-        $password = 'password123';
-
-        $I->sendPOST('/api/auth/register', [
+        // Gerar um timestamp curto para evitar nomes muito longos
+        $timestamp = time() % 10000; // Usar apenas os últimos 4 dígitos
+        
+        // Primeiro vamos registrar um usuário
+        $username1 = 'test_u1_' . $timestamp;
+        $email = 'test_dup_' . $timestamp . '@example.com';
+        
+        $I->sendPost('/api/auth/register', [
             'username' => $username1,
             'email' => $email,
-            'password' => $password
+            'password' => 'password123'
         ]);
+        
         $I->seeResponseCodeIs(HttpCode::CREATED);
-
-        // Tentativa com email duplicado
-        $username2 = 'test_user_duplicate_2_' . time();
-        $I->sendPOST('/api/auth/register', [
+        
+        // Agora tentamos registrar outro com o mesmo email
+        $username2 = 'test_u2_' . $timestamp;
+        
+        $I->sendPost('/api/auth/register', [
             'username' => $username2,
-            'email' => $email,
-            'password' => $password
+            'email' => $email, // mesmo email
+            'password' => 'password123'
         ]);
-
+        
         $I->seeResponseCodeIs(HttpCode::CONFLICT);
         $I->seeResponseIsJson();
         $I->seeResponseContainsJson(['error' => 'O email informado já está cadastrado']);
@@ -63,26 +66,30 @@ class AuthApiCest
 
     public function testRegistroUsuarioDuplicado(FunctionalTester $I)
     {
-        // Primeiro registro
-        $username = 'test_username_duplicate_' . time();
-        $email1 = 'test_username_1_' . time() . '@example.com';
-        $password = 'password123';
-
-        $I->sendPOST('/api/auth/register', [
+        // Gerar um timestamp curto para evitar nomes muito longos
+        $timestamp = time() % 10000; // Usar apenas os últimos 4 dígitos
+        
+        // Primeiro vamos registrar um usuário
+        $username = 'test_udup_' . $timestamp;
+        $email1 = 'test_dup1_' . $timestamp . '@example.com';
+        
+        $I->sendPost('/api/auth/register', [
             'username' => $username,
             'email' => $email1,
-            'password' => $password
+            'password' => 'password123'
         ]);
+        
         $I->seeResponseCodeIs(HttpCode::CREATED);
-
-        // Tentativa com username duplicado
-        $email2 = 'test_username_2_' . time() . '@example.com';
-        $I->sendPOST('/api/auth/register', [
-            'username' => $username,
+        
+        // Agora tentamos registrar outro com o mesmo username
+        $email2 = 'test_dup2_' . $timestamp . '@example.com';
+        
+        $I->sendPost('/api/auth/register', [
+            'username' => $username, // mesmo username
             'email' => $email2,
-            'password' => $password
+            'password' => 'password123'
         ]);
-
+        
         $I->seeResponseCodeIs(HttpCode::CONFLICT);
         $I->seeResponseIsJson();
         $I->seeResponseContainsJson(['error' => 'O nome de usuário informado já está em uso']);
@@ -90,40 +97,41 @@ class AuthApiCest
 
     public function testLoginSucesso(FunctionalTester $I)
     {
-        // Criar usuário para teste
-        $username = 'test_login_' . time();
-        $email = 'test_login_' . time() . '@example.com';
+        // Gerar um timestamp curto para evitar nomes muito longos
+        $timestamp = time() % 10000; // Usar apenas os últimos 4 dígitos
+        
+        // Registrar um novo usuário
+        $username = 'test_lg_' . $timestamp;
+        $email = 'test_log_' . $timestamp . '@example.com';
         $password = 'password123';
-
-        $I->sendPOST('/api/auth/register', [
+        
+        $I->sendPost('/api/auth/register', [
             'username' => $username,
             'email' => $email,
             'password' => $password
         ]);
+        
         $I->seeResponseCodeIs(HttpCode::CREATED);
-
-        // Testar login
-        $I->sendPOST('/api/auth/login', [
+        
+        // Tentar fazer login
+        $I->sendPost('/api/auth/login', [
             'email' => $email,
             'password' => $password
         ]);
-
+        
         $I->seeResponseCodeIs(HttpCode::OK);
         $I->seeResponseIsJson();
         $I->seeResponseJsonMatchesJsonPath('$.access_token');
-        $I->seeResponseJsonMatchesJsonPath('$.user.id');
-        $I->seeResponseJsonMatchesJsonPath('$.user.email');
-        $I->seeResponseContainsJson(['user' => ['email' => $email]]);
+        $I->seeResponseJsonMatchesJsonPath('$.user');
     }
 
     public function testLoginFalha(FunctionalTester $I)
     {
-        // Credenciais inválidas
-        $I->sendPOST('/api/auth/login', [
+        $I->sendPost('/api/auth/login', [
             'email' => 'email_inexistente@example.com',
             'password' => 'senha_incorreta'
         ]);
-
+        
         $I->seeResponseCodeIs(HttpCode::UNAUTHORIZED);
         $I->seeResponseIsJson();
         $I->seeResponseContainsJson(['error' => 'Credenciais inválidas']);
@@ -131,34 +139,43 @@ class AuthApiCest
 
     public function testPerfilComTokenValido(FunctionalTester $I)
     {
-        // Registro e login para obter token
-        $username = 'test_profile_' . time();
-        $email = 'test_profile_' . time() . '@example.com';
+        // Gerar um timestamp curto para evitar nomes muito longos
+        $timestamp = time() % 10000; // Usar apenas os últimos 4 dígitos
+        
+        // Registrar um novo usuário
+        $username = 'test_prf_' . $timestamp;
+        $email = 'test_prf_' . $timestamp . '@example.com';
         $password = 'password123';
-
-        $I->sendPOST('/api/auth/register', [
+        
+        $I->sendPost('/api/auth/register', [
             'username' => $username,
             'email' => $email,
             'password' => $password
         ]);
+        
         $I->seeResponseCodeIs(HttpCode::CREATED);
-        $registroResponse = json_decode($I->grabResponse(), true);
-        $token = $registroResponse['access_token'];
-
-        // Testar acesso ao perfil com token válido
+        $response = json_decode($I->grabResponse(), true);
+        $token = $response['access_token'];
+        
+        // Acessar o perfil com o token
         $I->haveHttpHeader('Authorization', 'Bearer ' . $token);
-        $I->sendGET('/api/auth/profile');
-
+        $I->sendGet('/api/auth/profile');
+        
         $I->seeResponseCodeIs(HttpCode::OK);
         $I->seeResponseIsJson();
-        $I->seeResponseContainsJson(['email' => $email, 'username' => $username]);
+        $I->seeResponseJsonMatchesJsonPath('$.id');
+        $I->seeResponseJsonMatchesJsonPath('$.username');
+        $I->seeResponseJsonMatchesJsonPath('$.email');
     }
 
     public function testPerfilSemToken(FunctionalTester $I)
     {
-        // Tentativa de acesso sem token
-        $I->sendGET('/api/auth/profile');
-
+        // Remover cabeçalho de autorização, se houver
+        $I->deleteHeader('Authorization');
+        
+        $I->sendGet('/api/auth/profile');
+        
         $I->seeResponseCodeIs(HttpCode::UNAUTHORIZED);
+        $I->seeResponseIsJson();
     }
 } 

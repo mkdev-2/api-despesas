@@ -2,8 +2,9 @@
 
 namespace tests\unit\models;
 
-use app\models\Despesa;
-use app\models\User;
+use app\modules\financeiro\models\Despesa;
+use app\modules\financeiro\models\DespesaQuery;
+use app\modules\usuarios\models\User;
 use Codeception\Test\Unit;
 use tests\unit\MockUserComponent;
 use Yii;
@@ -54,9 +55,9 @@ class DespesaTest extends Unit
         $categorias = Despesa::getCategorias();
         
         $this->assertIsArray($categorias, 'O método getCategorias deveria retornar um array');
-        $this->assertArrayHasKey('alimentacao', $categorias, 'Deveria conter a categoria alimentação');
-        $this->assertArrayHasKey('transporte', $categorias, 'Deveria conter a categoria transporte');
-        $this->assertArrayHasKey('lazer', $categorias, 'Deveria conter a categoria lazer');
+        $this->assertContains(Despesa::CATEGORIA_ALIMENTACAO, $categorias, 'Deveria conter a categoria alimentação');
+        $this->assertContains(Despesa::CATEGORIA_TRANSPORTE, $categorias, 'Deveria conter a categoria transporte');
+        $this->assertContains(Despesa::CATEGORIA_LAZER, $categorias, 'Deveria conter a categoria lazer');
     }
     
     public function testValidation()
@@ -131,13 +132,13 @@ class DespesaTest extends Unit
         
         // Testar DespesaQuery
         $query = Despesa::find();
-        $this->assertInstanceOf('app\models\DespesaQuery', $query, 'O método find deveria retornar uma instância de DespesaQuery');
+        $this->assertInstanceOf('app\modules\financeiro\models\DespesaQuery', $query, 'O método find deveria retornar uma instância de DespesaQuery');
         
         // Testar métodos de escopo
-        $query = new \app\models\DespesaQuery(Despesa::class);
-        $this->assertInstanceOf('app\models\DespesaQuery', $query->porCategoria('alimentacao'), 'O método porCategoria deveria retornar uma instância de DespesaQuery');
-        $this->assertInstanceOf('app\models\DespesaQuery', $query->entreDatas('2023-01-01', '2023-12-31'), 'O método entreDatas deveria retornar uma instância de DespesaQuery');
-        $this->assertInstanceOf('app\models\DespesaQuery', $query->ordenarPorData(), 'O método ordenarPorData deveria retornar uma instância de DespesaQuery');
-        $this->assertInstanceOf('app\models\DespesaQuery', $query->doUsuario(1), 'O método doUsuario deveria retornar uma instância de DespesaQuery');
+        $query = new DespesaQuery(Despesa::class);
+        $this->assertInstanceOf('app\modules\financeiro\models\DespesaQuery', $query->porCategoria('alimentacao'), 'O método porCategoria deveria retornar uma instância de DespesaQuery');
+        $this->assertInstanceOf('app\modules\financeiro\models\DespesaQuery', $query->entreDatas('2023-01-01', '2023-12-31'), 'O método entreDatas deveria retornar uma instância de DespesaQuery');
+        $this->assertInstanceOf('app\modules\financeiro\models\DespesaQuery', $query->ordenarPorData(), 'O método ordenarPorData deveria retornar uma instância de DespesaQuery');
+        $this->assertInstanceOf('app\modules\financeiro\models\DespesaQuery', $query->doUsuario(1), 'O método doUsuario deveria retornar uma instância de DespesaQuery');
     }
 } 

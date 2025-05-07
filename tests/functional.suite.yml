@@ -11,14 +11,23 @@ modules:
     enabled:
       - Filesystem
       - Yii2:
-          part: [orm, fixtures, email, init]
+          part: [orm, fixtures, email]
           configFile: 'config/test.php'
           entryScript: 'index-test.php'
           transaction: false
           cleanup: false
       - Asserts
       - REST:
-          depends: Yii2
-          part: Json
-          url: ''
+          depends: PhpBrowser
+          url: 'http://localhost:8080'
+      - PhpBrowser:
+          url: 'http://localhost:8080'
       - \Helper\Functional
+    config:
+        PhpBrowser:
+            headers:
+                Content-Type: 'application/json'
+                Accept: 'application/json'
+                X-Requested-With: 'XMLHttpRequest'
+        REST:
+            url: 'http://localhost:8080'

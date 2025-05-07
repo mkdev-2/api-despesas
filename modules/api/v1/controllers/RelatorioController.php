@@ -67,7 +67,7 @@ class RelatorioController extends Controller
      * @param array $params Parâmetros adicionais para a ação
      * @return mixed O resultado da ação executada
      */
-    protected function runAction($route, $params = [])
+    public function runAction($route, $params = [])
     {
         $request = Yii::$app->request;
         
