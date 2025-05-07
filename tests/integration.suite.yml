@@ -13,8 +13,8 @@ modules:
             depends: Yii2
             part: Json
         - Db:
-            dsn: 'mysql:host=db;dbname=gerenciamento_despesas_test'
-            user: 'user'
-            password: 'password'
+            dsn: 'mysql:host=127.0.0.1;dbname=gerenciamento_despesas_test'
+            user: 'despesas'
+            password: 'root'
             cleanup: true
             populate: true 
