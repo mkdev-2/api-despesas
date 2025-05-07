@@ -1,0 +1,71 @@
+# Yii2 e PHP
+/vendor/
+/composer.lock
+/composer.phar
+
+# Arquivos de configuração local
+/.env
+/config/db.php
+/config/params-local.php
+/config/web-local.php
+/config/console-local.php
+/config/test-local.php
+
+# Arquivos temporários do Yii
+/runtime/
+/web/assets/
+/tests/_output/*
+/tests/_support/_generated
+
+# Arquivos de log
+/runtime/logs/*
+/runtime/debug/*
+
+# Arquivos temporários de sessão
+/runtime/sessions/*
+
+# Bancos de dados SQLite (se usado para testes)
+/*.db
+/*.sqlite
+
+# Arquivos temporários do sistema
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+/.idea/
+/.vscode/
+/.phpstorm.meta.php
+/_ide_helper.php
+/.phpunit.result.cache
+/.php_cs.cache
+/.php-cs-fixer.cache
+
+# Arquivos de ambiente Docker
+/docker-compose.override.yml
+
+# Arquivos de cache
+.php_cs.cache
+.phpunit.result.cache
+
+# phpstorm project files
+.idea
+
+# netbeans project files
+nbproject
+
+# zend studio for eclipse project files
+.buildpath
+.project
+.settings
+
+# Mac DS_Store Files
+.DS_Store
+
+# phpunit itself is not needed
+phpunit.phar
+# local phpunit config
+/phpunit.xml
+
+#vagrant folder
+/.vagrant

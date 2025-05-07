@@ -1,0 +1,132 @@
+version: '3.8'
+
+# Variáveis de ambiente padrão (substitua com .env em produção)
+x-db-variables: &db-variables
+  DB_HOST: db
+  DB_DATABASE: gerenciamento_despesas
+  DB_DATABASE_TEST: gerenciamento_despesas_test
+  DB_USERNAME: user
+  DB_PASSWORD: ${DB_PASSWORD:-password}
+  DB_PORT: 3306
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ENVIRONMENT=${ENVIRONMENT:-development}
+    container_name: despesas_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      <<: *db-variables
+      WAIT_HOSTS: db:3306
+      WAIT_TIMEOUT: 300
+      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-256M}
+      APP_ENV: ${APP_ENV:-dev}
+      APP_DEBUG: ${APP_DEBUG:-true}
+    volumes:
+      - ./:/var/www/html:delegated
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
+    networks:
+      - despesas-network
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD", "php", "-r", "if (file_exists('/var/www/html/runtime') && is_dir('/var/www/html/runtime')) { exit(0); } else { exit(1); }"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  nginx:
+    image: nginx:1.23-alpine
+    container_name: despesas_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - despesas-network
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  db:
+    image: mysql:8.0
+    container_name: despesas_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-gerenciamento_despesas}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_USER: ${DB_USERNAME:-user}
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      - despesas-db:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    networks:
+      - despesas-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME:-user}", "-p${DB_PASSWORD:-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: despesas_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME:-user}
+      PMA_PASSWORD: ${DB_PASSWORD:-password}
+      UPLOAD_LIMIT: ${UPLOAD_LIMIT:-100M}
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    networks:
+      - despesas-network
+    depends_on:
+      db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  despesas-network:
+    driver: bridge
+
+volumes:
+  despesas-db:
+    name: despesas_mysql_data 

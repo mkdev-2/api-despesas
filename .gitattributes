@@ -1,0 +1,43 @@
+# Normalização de fim de linha para fim de linha Unix (LF)
+* text=auto eol=lf
+
+# Definindo linguagem predominante como PHP para estatísticas do GitHub
+*.php linguist-language=PHP
+
+# Arquivos que devem ser considerados texto e terem normalização de fim de linha
+*.css text
+*.scss text
+*.js text
+*.json text
+*.xml text
+*.md text
+*.yml text
+*.yaml text
+*.txt text
+*.ini text
+*.php text
+*.sql text
+*.sh text eol=lf
+*.html text
+*.htm text
+
+# Arquivos que devem ser tratados como binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+
+# Arquivos específicos do projeto
+/docker-compose.yml export-ignore
+/.github export-ignore
+/tests export-ignore
+/.gitattributes export-ignore
+/.editorconfig export-ignore
+/codeception.yml export-ignore 

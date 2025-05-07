@@ -1,0 +1,20 @@
+# Codeception Test Suite Configuration
+
+# Suite para testes de integração que verificam a interação entre diferentes módulos
+# Os testes de integração combinam aspectos dos testes unitários e funcionais
+
+actor: IntegrationTester
+modules:
+    enabled:
+        - Asserts
+        - Yii2:
+            part: [orm, fixtures, email]
+        - REST:
+            depends: Yii2
+            part: Json
+        - Db:
+            dsn: 'mysql:host=db;dbname=gerenciamento_despesas_test'
+            user: 'user'
+            password: 'password'
+            cleanup: true
+            populate: true 
