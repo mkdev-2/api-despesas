@@ -14,24 +14,24 @@ COLLATE utf8mb4_unicode_ci;
 
 -- Conceder privilégios mínimos necessários ao usuário (princípio do privilégio mínimo)
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, REFERENCES, TRIGGER 
-ON gerenciamento_despesas.* TO 'user'@'%';
+ON gerenciamento_despesas.* TO 'despesas'@'%';
 
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, REFERENCES, TRIGGER 
-ON gerenciamento_despesas_test.* TO 'user'@'%';
+ON gerenciamento_despesas_test.* TO 'despesas'@'%';
 
 -- Aplicar as mudanças de privilégios
 FLUSH PRIVILEGES;
 
 -- Garantir que o usuário não tenha acesso a outros bancos
-REVOKE ALL PRIVILEGES ON *.* FROM 'user'@'%';
-REVOKE GRANT OPTION ON *.* FROM 'user'@'%';
+REVOKE ALL PRIVILEGES ON *.* FROM 'despesas'@'%';
+REVOKE GRANT OPTION ON *.* FROM 'despesas'@'%';
 
 -- Restaurar os privilégios específicos apenas para os bancos necessários
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, REFERENCES, TRIGGER 
-ON gerenciamento_despesas.* TO 'user'@'%';
+ON gerenciamento_despesas.* TO 'despesas'@'%';
 
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, REFERENCES, TRIGGER 
-ON gerenciamento_despesas_test.* TO 'user'@'%';
+ON gerenciamento_despesas_test.* TO 'despesas'@'%';
 
 -- Aplicar novamente as mudanças de privilégios
 FLUSH PRIVILEGES; 

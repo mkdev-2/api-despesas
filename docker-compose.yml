@@ -1,12 +1,12 @@
 version: '3.8'
 
-# Variáveis de ambiente padrão (substitua com .env em produção)
+# Variáveis de ambiente padrão
 x-db-variables: &db-variables
-  DB_HOST: db
+  DB_HOST: despesas_db
   DB_DATABASE: gerenciamento_despesas
   DB_DATABASE_TEST: gerenciamento_despesas_test
-  DB_USERNAME: user
-  DB_PASSWORD: ${DB_PASSWORD:-password}
+  DB_USERNAME: despesas
+  DB_PASSWORD: root
   DB_PORT: 3306
 
 services:
@@ -21,20 +21,25 @@ services:
     working_dir: /var/www/html
     environment:
       <<: *db-variables
-      WAIT_HOSTS: db:3306
+      WAIT_HOSTS: despesas_db:3306
       WAIT_TIMEOUT: 300
       PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT:-256M}
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-true}
+      MYSQL_HOST: despesas_db
+      MYSQL_DATABASE: gerenciamento_despesas
+      MYSQL_USER: despesas
+      MYSQL_PASSWORD: root
     volumes:
       - ./:/var/www/html:delegated
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
     networks:
       - despesas-network
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "php", "-r", "if (file_exists('/var/www/html/runtime') && is_dir('/var/www/html/runtime')) { exit(0); } else { exit(1); }"]
+      test: ["CMD", "php", "-r", "if(@fsockopen('despesas_db', 3306)) { exit(0); } else { exit(1); }"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -75,11 +80,12 @@ services:
     container_name: despesas_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-gerenciamento_despesas}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_USER: ${DB_USERNAME:-user}
+      MYSQL_DATABASE: gerenciamento_despesas
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_PASSWORD: root
+      MYSQL_USER: despesas
       TZ: ${TZ:-America/Sao_Paulo}
+    command: --default-authentication-plugin=mysql_native_password
     volumes:
       - despesas-db:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
@@ -89,7 +95,7 @@ services:
     networks:
       - despesas-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME:-user}", "-p${DB_PASSWORD:-password}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -105,10 +111,10 @@ services:
     container_name: despesas_phpmyadmin
     restart: unless-stopped
     environment:
-      PMA_HOST: db
+      PMA_HOST: despesas_db
       PMA_PORT: 3306
-      PMA_USER: ${DB_USERNAME:-user}
-      PMA_PASSWORD: ${DB_PASSWORD:-password}
+      PMA_USER: root
+      PMA_PASSWORD: password
       UPLOAD_LIMIT: ${UPLOAD_LIMIT:-100M}
     ports:
       - "${PMA_PORT:-8081}:80"

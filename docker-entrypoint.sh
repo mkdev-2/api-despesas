@@ -9,18 +9,21 @@ NC='\033[0m' # Sem cor
 
 echo -e "${YELLOW}Inicializando o ambiente de desenvolvimento...${NC}"
 
-# Obter variáveis de ambiente ou definir valores padrão
-DB_HOST=${DB_HOST:-db}
-DB_DATABASE=${DB_DATABASE:-gerenciamento_despesas}
-DB_USERNAME=${DB_USERNAME:-user}
-DB_PASSWORD=${DB_PASSWORD:-password}
-DB_PORT=${DB_PORT:-3306}
-
 # Função de tratamento de erro
 error_exit() {
     echo -e "${RED}Erro: $1${NC}" >&2
     exit 1
 }
+
+# Exibir informações de configuração do banco de dados
+echo -e "${YELLOW}Configuração do banco de dados:${NC}"
+echo "Host: $DB_HOST"
+echo "Banco: $DB_DATABASE"
+echo "Usuário: $DB_USERNAME"
+
+# Aguardar o banco de dados usando o wait
+echo -e "${YELLOW}Aguardando o banco de dados ficar disponível usando wait...${NC}"
+/wait
 
 # Função para verificar se o banco de dados está pronto
 check_db() {
@@ -39,33 +42,13 @@ check_db() {
     "
 }
 
-# Esperar pelo banco de dados (com timeout de 60 segundos)
-echo -e "${YELLOW}Aguardando o banco de dados ficar disponível...${NC}"
-MAX_ATTEMPTS=12
-ATTEMPT=0
-until check_db | grep -q 'connected' || [ $ATTEMPT -eq $MAX_ATTEMPTS ]; do
-    ATTEMPT=$((ATTEMPT+1))
-    echo -e "${YELLOW}Tentativa $ATTEMPT/$MAX_ATTEMPTS: Banco de dados ainda não está pronto. Aguardando 5 segundos...${NC}"
-    sleep 5
-done
-
-if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-    error_exit "Não foi possível conectar ao banco de dados após $MAX_ATTEMPTS tentativas."
+# Verificar a conexão após o wait
+echo -e "${YELLOW}Verificando conexão com o banco de dados...${NC}"
+if ! check_db | grep -q 'connected'; then
+    error_exit "Não foi possível conectar ao banco de dados após wait"
 fi
 
 echo -e "${GREEN}Banco de dados disponível!${NC}"
-
-# Verificar e criar arquivo .env a partir do exemplo
-if [ ! -f .env ]; then
-    echo -e "${YELLOW}Arquivo .env não encontrado. Criando a partir do exemplo...${NC}"
-    if [ ! -f .env.example ]; then
-        error_exit "Arquivo .env.example não encontrado. Impossível criar configuração."
-    fi
-    cp .env.example .env || error_exit "Falha ao criar arquivo .env"
-    echo -e "${GREEN}Arquivo .env criado!${NC}"
-else
-    echo -e "${GREEN}Arquivo .env já existe.${NC}"
-fi
 
 # Verificar se os diretórios essenciais existem
 for DIR in "runtime" "web/assets"; do
@@ -77,6 +60,7 @@ for DIR in "runtime" "web/assets"; do
     # Garantir permissões corretas
     echo -e "${YELLOW}Aplicando permissões em $DIR...${NC}"
     chmod -R 775 "$DIR" || error_exit "Falha ao aplicar permissões em $DIR"
+    chown -R www-data:www-data "$DIR" || error_exit "Falha ao aplicar permissões de proprietário em $DIR"
 done
 
 # Verificar arquivo de execução do Yii
@@ -200,6 +184,11 @@ else
 fi
 
 echo -e "${GREEN}Ambiente preparado com sucesso!${NC}"
+
+# Preparar o ambiente PHP-FPM para executar como www-data
+echo -e "${YELLOW}Ajustando permissões finais...${NC}"
+chown -R www-data:www-data /var/www/html
+echo -e "${GREEN}Permissões ajustadas!${NC}"
 
 # Executar o comando original (php-fpm)
 exec "$@" 

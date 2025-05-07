@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
+    default-mysql-client \
+    iputils-ping \
+    net-tools \
     --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -43,9 +46,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Criar diretório do sistema
 RUN mkdir -p /var/www/html
 
-# Configurar usuário padrão
-RUN usermod -u $uid $user
-
 # Definir diretório de trabalho
 WORKDIR /var/www/html
 
@@ -57,16 +57,22 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Criar diretórios essenciais e configurar permissões
-RUN mkdir -p /var/www/html/runtime /var/www/html/web/assets
+RUN mkdir -p /var/www/html/runtime /var/www/html/web/assets && \
+    chown -R $user:$user /var/www/html
 
 # Instalar ferramentas de espera
 ENV WAIT_VERSION 2.12.1
 ADD --chmod=755 https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
 
-# Definir imagem não-root para reduzir riscos de segurança
-USER $user
+# Definir variáveis de ambiente padrão
+ENV DB_HOST=despesas_db
+ENV DB_PORT=3306
+ENV DB_DATABASE=gerenciamento_despesas
+ENV DB_USERNAME=despesas  
+ENV DB_PASSWORD=root
+ENV DB_CHARSET=utf8mb4
 
-# Copiar o código da aplicação (após configuração do usuário)
+# Copiar o código da aplicação
 COPY --chown=$user:$user . /var/www/html
 
 # Expor a porta padrão do php-fpm
@@ -74,5 +80,4 @@ EXPOSE 9000
 
 # Configurar a entrada para o script de inicialização
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["php-fpm"]
-
+CMD ["php-fpm"] 
