@@ -20,8 +20,9 @@ if ($isInCI) {
     $host = '127.0.0.1'; // Usar IP em vez de 'localhost' para evitar sockets
     $port = getenv('DB_PORT') ?: '3306';
     $dbName = getenv('DB_DATABASE_TEST') ?: 'gerenciamento_despesas_test';
-    $username = getenv('DB_USERNAME') ?: 'root';
-    $password = getenv('DB_PASSWORD') ?: 'password';
+    // No CI, usamos o usuário root para garantir que temos permissões suficientes
+    $username = 'root';
+    $password = 'root';
     echo "Ambiente: CI\n";
 } elseif ($isInDocker) {
     // Ambiente Docker
@@ -200,39 +201,54 @@ try {
     exit(1);
 }
 
-// Configurar o banco de dados para o Yii
-$db = [
-    'class' => 'yii\db\Connection',
-    'dsn' => "mysql:host=$host;port=$port;dbname=$dbName",
-    'username' => $username,
-    'password' => $password,
-    'charset' => 'utf8mb4',
-];
+// Após a criação e configuração do banco de dados de teste
+try {
+    // Configurar o banco de dados para o Yii
+    $db = [
+        'class' => 'yii\db\Connection',
+        'dsn' => "mysql:host=$host;port=$port;dbname=$dbName",
+        'username' => $username,
+        'password' => $password,
+        'charset' => 'utf8mb4',
+    ];
 
-// Carrega apenas as configurações essenciais para o console
-$config = [
-    'id' => 'basic-tests-console',
-    'basePath' => dirname(__DIR__),
-    'components' => [
-        'db' => $db,
-        'cache' => [
-            'class' => 'yii\caching\FileCache',
+    // Se estamos no CI, garantir que o usuário 'despesas' tenha todas as permissões necessárias
+    if ($isInCI) {
+        echo "Configurando permissões adicionais para o ambiente de CI...\n";
+        try {
+            // Garantir que o usuário 'despesas' tenha todas as permissões no banco de dados de teste
+            $pdo->exec("GRANT ALL PRIVILEGES ON `$dbName`.* TO 'despesas'@'%';");
+            $pdo->exec("FLUSH PRIVILEGES;");
+            echo "Permissões concedidas ao usuário 'despesas' para o banco de teste.\n";
+        } catch (PDOException $e) {
+            echo "Aviso: Erro ao conceder permissões: " . $e->getMessage() . "\n";
+            // Não vamos falhar completamente devido a isso
+        }
+    }
+
+    // Carrega apenas as configurações essenciais para o console
+    $config = [
+        'id' => 'basic-tests-console',
+        'basePath' => dirname(__DIR__),
+        'components' => [
+            'db' => $db,
+            'cache' => [
+                'class' => 'yii\caching\FileCache',
+            ],
         ],
-    ],
-    'modules' => [
-        'api' => [
-            'class' => 'app\modules\api\Module',
-            'modules' => [
-                'v1' => [
-                    'class' => 'app\modules\api\v1\Module',
+        'modules' => [
+            'api' => [
+                'class' => 'app\modules\api\Module',
+                'modules' => [
+                    'v1' => [
+                        'class' => 'app\modules\api\v1\Module',
+                    ],
                 ],
             ],
         ],
-    ],
-];
+    ];
 
-// Executar apenas migrações que ainda não foram aplicadas
-try {
+    // Executar apenas migrações que ainda não foram aplicadas
     $application = new yii\console\Application($config);
     $exitCode = $application->runAction('migrate', ['interactive' => false]);
     

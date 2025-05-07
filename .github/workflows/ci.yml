@@ -17,6 +17,12 @@ jobs:
       DB_DATABASE_TEST: gerenciamento_despesas_test
       DB_USERNAME: root
       DB_PASSWORD: root
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: 3306
+      TEST_DB_DATABASE: gerenciamento_despesas_test
+      TEST_DB_USERNAME: root
+      TEST_DB_PASSWORD: root
+      TEST_DB_CHARSET: utf8mb4
 
     services:
       mysql:
@@ -60,6 +66,9 @@ jobs:
         cp .env.example .env
         sed -i 's/DB_HOST=localhost/DB_HOST=127.0.0.1/g' .env
         sed -i 's/TEST_DB_HOST=localhost/TEST_DB_HOST=127.0.0.1/g' .env
+        sed -i 's/TEST_DB_USERNAME=despesas/TEST_DB_USERNAME=root/g' .env
+        sed -i 's/TEST_DB_PASSWORD=root/TEST_DB_PASSWORD=root/g' .env
+        cat .env
 
     - name: Wait for MySQL
       run: |
@@ -80,10 +89,21 @@ jobs:
 
         echo "MySQL está pronto!"
 
-    - name: Setup database
+    - name: Setup main database
       run: |
-        # Marcar migrações como aplicadas
         echo "Configurando banco de dados principal..."
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS gerenciamento_despesas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS gerenciamento_despesas_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        
+        # Garantir que o usuário 'despesas' tenha todas as permissões necessárias
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON gerenciamento_despesas.* TO 'despesas'@'%';"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "GRANT ALL PRIVILEGES ON gerenciamento_despesas_test.* TO 'despesas'@'%';"
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "FLUSH PRIVILEGES;"
+        
+        # Verificar as permissões
+        mysql -h127.0.0.1 -P3306 -uroot -proot -e "SHOW GRANTS FOR 'despesas'@'%';"
+
+        # Marcar migrações como aplicadas
         php scripts/mark-migrations.php
 
         # Criar e configurar banco de dados de teste
@@ -109,7 +129,10 @@ jobs:
         curl -I http://localhost:8080 || true
 
     - name: Run unit and integration tests
-      run: vendor/bin/codecept run unit,integration
+      env:
+        TEST_DB_USERNAME: root
+        TEST_DB_PASSWORD: root
+      run: vendor/bin/codecept run unit,integration --debug
 
     # Executar testes funcionais usando a configuração específica para CI
     - name: Run functional tests with CI configuration
