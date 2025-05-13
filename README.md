@@ -45,43 +45,9 @@ O projeto segue uma arquitetura modular com:
 
 - **Módulo financeiro**: Gerenciamento de despesas e relatórios
 - **Módulo usuários**: Autenticação e gerenciamento de usuários
-- **Módulo API**: Interface RESTful padronizada
 
 ## 📚 Documentação
 
-- [Documentação completa](README.md)
 - [Documentação da API](API.md)
 - [Documentação de testes](tests/README.md)
 
-## 🧪 Testes
-
-```bash
-# Prepare o ambiente de teste
-php scripts/prepare-test-db.php
-
-# Execute todos os testes
-./vendor/bin/codecept run
-```
-
-### Melhorias Recentes nos Testes
-
-Implementamos diversas melhorias para tornar os testes mais robustos e confiáveis:
-
-- **Geração inteligente de dados de teste**: Sistema para criar usernames e emails únicos para cada teste, evitando conflitos
-- **Alinhamento com comportamento real da API**: Códigos de status HTTP corretos para cada cenário (409 para conflitos, 401 para autenticação falha)
-- **Verificação flexível de resposta JSON**: Adaptação às mudanças de formato nos endpoints como `/api/despesas/categorias` e `/api/despesas/resumo`
-- **Solução para problemas de sessão**: Mock de sessões para evitar erros de headers HTTP durante testes
-
-Todos os testes estão passando com sucesso, garantindo a qualidade e confiabilidade da API.
-
-## 🤝 Contribuindo
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
-## 📝 Licença
-
-Distribuído sob a licença MIT. Veja `LICENSE` para mais informações. 
