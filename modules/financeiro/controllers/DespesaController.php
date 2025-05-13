@@ -385,22 +385,4 @@ class DespesaController extends ActiveController
         throw new NotFoundHttpException('A despesa solicitada não existe');
     }
     
-    /**
-     * Endpoint para diagnóstico de problemas
-     * - Retorna informações úteis para depuração
-     * - NÃO DEVE SER USADO EM PRODUÇÃO
-     */
-    public function actionDiagnosticar()
-    {
-        return [
-            'baseUrl' => Yii::$app->request->baseUrl,
-            'homeUrl' => Yii::$app->homeUrl,
-            'php_version' => PHP_VERSION,
-            'yii_version' => Yii::getVersion(),
-            'app_name' => Yii::$app->name,
-            'db_dsn' => Yii::$app->db->dsn,
-            'is_jwt_configured' => isset(Yii::$app->jwt),
-            'timestamp' => date('Y-m-d H:i:s'),
-        ];
-    }
 } 

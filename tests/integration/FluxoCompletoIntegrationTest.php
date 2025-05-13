@@ -6,11 +6,14 @@ use Codeception\Test\Unit;
 use Codeception\Util\HttpCode;
 use app\modules\usuarios\models\User;
 use app\modules\financeiro\models\Despesa;
-use app\modules\api\v1\controllers\DespesaController;
-use app\modules\api\v1\controllers\AuthController;
 use yii\web\Request;
 use yii\web\Response;
 use tests\support\MockSession;
+use yii\helpers\ArrayHelper;
+use yii\helpers\Url;
+use sizeg\jwt\Jwt;
+use app\modules\api\controllers\DespesaController;
+use app\modules\api\controllers\AuthController;
 
 /**
  * Teste de integração do fluxo completo de autenticação e gerenciamento de despesas

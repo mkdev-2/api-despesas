@@ -28,4 +28,4 @@ modules:
                 Accept: 'application/json'
                 X-Requested-With: 'XMLHttpRequest'
         REST:
-            url: 'http://localhost:8080'
+            url: 'http://despesas_nginx'

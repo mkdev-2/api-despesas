@@ -237,13 +237,14 @@ try {
             ],
         ],
         'modules' => [
+            'financeiro' => [
+                'class' => 'app\modules\financeiro\Module',
+            ],
+            'usuarios' => [
+                'class' => 'app\modules\usuarios\Module',
+            ],
             'api' => [
                 'class' => 'app\modules\api\Module',
-                'modules' => [
-                    'v1' => [
-                        'class' => 'app\modules\api\v1\Module',
-                    ],
-                ],
             ],
         ],
     ];

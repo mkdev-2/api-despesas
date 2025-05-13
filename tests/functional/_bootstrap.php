@@ -3,7 +3,7 @@
 // Código de inicialização específico para testes funcionais
 
 // Garante que os módulos necessários estão registrados
-Yii::$app->setModules([
+$modules = [
     'financeiro' => [
         'class' => 'app\modules\financeiro\Module',
     ],
@@ -12,13 +12,10 @@ Yii::$app->setModules([
     ],
     'api' => [
         'class' => 'app\modules\api\Module',
-        'modules' => [
-            'v1' => [
-                'class' => 'app\modules\api\v1\Module',
-            ],
-        ],
     ],
-]);
+];
+
+Yii::$app->setModules($modules);
 
 // Define o ambiente para a API
 defined('YII_ENV_TEST') or define('YII_ENV_TEST', true);

@@ -14,7 +14,6 @@ Esta API permite o registro, visualização, edição e exclusão de despesas pe
 - Categorização por tipo de despesa
 - Filtragem por período e categoria
 - Relatórios e resumos
-- Versionamento da API
 
 ## 🚀 Tecnologias Utilizadas
 
@@ -46,7 +45,7 @@ O projeto segue uma arquitetura modular com:
 
 - **Módulo financeiro**: Gerenciamento de despesas e relatórios
 - **Módulo usuários**: Autenticação e gerenciamento de usuários
-- **Módulo API**: Interface RESTful versionada (v1)
+- **Módulo API**: Interface RESTful padronizada
 
 ## 📚 Documentação
 

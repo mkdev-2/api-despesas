@@ -38,55 +38,46 @@ $config = [
             'showScriptName' => false,
             'enablePrettyUrl' => true,
             'rules' => [
-                // Rota de índice para a API v1
-                'api/v1' => 'api/v1/index/index',
+                // Rotas do módulo API
+                'api' => 'api/index/index',
+                'api/despesas' => 'api/despesa/index',
+                'api/despesas/create' => 'api/despesa/create',
+                'api/despesas/<id:\d+>' => 'api/despesa/view',
+                'api/despesas/<id:\d+>/update' => 'api/despesa/update',
+                'api/despesas/<id:\d+>/delete' => 'api/despesa/delete',
+                'api/despesas/categorias' => 'api/despesa/categorias',
+                'api/despesas/resumo' => 'api/despesa/resumo',
+                'api/relatorio/anual' => 'api/relatorio/anual',
+                'api/relatorio/proporcao' => 'api/relatorio/proporcao',
+                'api/auth/login' => 'api/auth/login',
+                'api/auth/register' => 'api/auth/register',
+                'api/auth/profile' => 'api/auth/profile',
+                'api/auth/update-profile' => 'api/auth/update-profile',
                 
-                // API v1 - Rotas principais
-                'api/v1/despesas' => 'api/v1/despesa/index',
-                'api/v1/despesas/create' => 'api/v1/despesa/create',
-                'api/v1/despesas/<id:\d+>' => 'api/v1/despesa/view',
-                'api/v1/despesas/<id:\d+>/update' => 'api/v1/despesa/update',
-                'api/v1/despesas/<id:\d+>/delete' => 'api/v1/despesa/delete',
-                'api/v1/despesas/categorias' => 'api/v1/despesa/categorias',
-                'api/v1/despesas/resumo' => 'api/v1/despesa/resumo',
-                'api/v1/relatorio/anual' => 'api/v1/relatorio/anual',
-                'api/v1/relatorio/proporcao' => 'api/v1/relatorio/proporcao',
-                'api/v1/auth/login' => 'api/v1/auth/login',
-                'api/v1/auth/register' => 'api/v1/auth/register',
-                'api/v1/auth/profile' => 'api/v1/auth/profile',
-                'api/v1/auth/update-profile' => 'api/v1/auth/update-profile',
-                
-                // Rotas de retrocompatibilidade (uso direto dos módulos internos)
-                'api/despesas' => 'financeiro/despesa/index',
-                'api/despesas/create' => 'financeiro/despesa/create',
-                'api/despesas/<id:\d+>' => 'financeiro/despesa/view',
-                'api/despesas/<id:\d+>/update' => 'financeiro/despesa/update',
-                'api/despesas/<id:\d+>/delete' => 'financeiro/despesa/delete',
-                'api/despesas/categorias' => 'financeiro/despesa/categorias',
-                'api/despesas/resumo' => 'financeiro/despesa/resumo',
-                
-                // Rotas para o módulo de relatórios
-                'api/relatorio/anual' => 'financeiro/relatorio/anual',
-                'api/relatorio/proporcao' => 'financeiro/relatorio/proporcao',
-                
-                // Rotas para o módulo de usuários
-                'api/auth/login' => 'usuarios/auth/login',
-                'api/auth/register' => 'usuarios/auth/register',
-                'api/auth/profile' => 'usuarios/auth/profile',
-                'api/auth/update-profile' => 'usuarios/auth/update-profile',
+                // Rotas diretas para outros módulos
+                'financeiro/despesas' => 'financeiro/despesa/index',
+                'financeiro/despesas/create' => 'financeiro/despesa/create',
+                'financeiro/despesas/<id:\d+>' => 'financeiro/despesa/view',
+                'financeiro/despesas/<id:\d+>/update' => 'financeiro/despesa/update',
+                'financeiro/despesas/<id:\d+>/delete' => 'financeiro/despesa/delete',
+                'financeiro/despesas/categorias' => 'financeiro/despesa/categorias',
+                'financeiro/despesas/resumo' => 'financeiro/despesa/resumo',
+                'financeiro/relatorio/anual' => 'financeiro/relatorio/anual',
+                'financeiro/relatorio/proporcao' => 'financeiro/relatorio/proporcao',
+                'usuarios/auth/login' => 'usuarios/auth/login',
+                'usuarios/auth/register' => 'usuarios/auth/register',
+                'usuarios/auth/profile' => 'usuarios/auth/profile',
+                'usuarios/auth/update-profile' => 'usuarios/auth/update-profile',
 
                 // Suporte a OPTIONS para CORS
-                'OPTIONS api/<controller:\w+>' => '<controller>/options',
-                'OPTIONS api/<controller:\w+>/<action:\w+>' => '<controller>/options',
-                'OPTIONS api/<controller:\w+>/<id:\d+>/<action:\w+>' => '<controller>/options',
-                'OPTIONS api/v1/<controller:\w+>' => 'api/v1/<controller>/options',
-                'OPTIONS api/v1/<controller:\w+>/<action:\w+>' => 'api/v1/<controller>/options',
-                'OPTIONS api/v1/<controller:\w+>/<id:\d+>/<action:\w+>' => 'api/v1/<controller>/options',
+                'OPTIONS api/<controller:\w+>' => 'api/<controller>/options',
+                'OPTIONS api/<controller:\w+>/<action:\w+>' => 'api/<controller>/options',
+                'OPTIONS api/<controller:\w+>/<id:\d+>/<action:\w+>' => 'api/<controller>/options',
                 
                 // Suporte a OPTIONS para módulos
-                'OPTIONS api/<module:\w+>/<controller:\w+>' => '<module>/<controller>/options',
-                'OPTIONS api/<module:\w+>/<controller:\w+>/<action:\w+>' => '<module>/<controller>/options',
-                'OPTIONS api/<module:\w+>/<controller:\w+>/<id:\d+>/<action:\w+>' => '<module>/<controller>/options',
+                'OPTIONS <module:\w+>/<controller:\w+>' => '<module>/<controller>/options',
+                'OPTIONS <module:\w+>/<controller:\w+>/<action:\w+>' => '<module>/<controller>/options',
+                'OPTIONS <module:\w+>/<controller:\w+>/<id:\d+>/<action:\w+>' => '<module>/<controller>/options',
             ],
         ],
         'user' => [
@@ -125,11 +116,6 @@ $config = [
         ],
         'api' => [
             'class' => 'app\modules\api\Module',
-            'modules' => [
-                'v1' => [
-                    'class' => 'app\modules\api\v1\Module',
-                ],
-            ],
         ],
     ],
     'params' => $params,

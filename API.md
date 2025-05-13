@@ -10,22 +10,6 @@ Esta API RESTful fornece endpoints para gerenciamento de despesas pessoais, perm
 http://localhost:8080
 ```
 
-## Versões da API
-
-A API agora suporta versionamento através de prefixos de URL. Atualmente, existem duas maneiras de acessar a API:
-
-### API v1 (Recomendada)
-```
-http://localhost:8080/api/v1/[recurso]
-```
-
-### API Legada (Compatibilidade)
-```
-http://localhost:8080/api/[recurso]
-```
-
-> **Nota**: Recomendamos o uso da versão mais recente da API (/api/v1/). As rotas legadas (/api/) são mantidas temporariamente para compatibilidade, mas poderão ser descontinuadas no futuro.
-
 ## Autenticação
 
 A API utiliza autenticação via JWT (JSON Web Token). Para acessar endpoints protegidos, é necessário incluir o token no cabeçalho de autorização:
@@ -40,14 +24,12 @@ Tokens podem ser obtidos através do endpoint de login ou registro.
 
 ## Endpoints
 
-> Exemplos abaixo utilizam o novo prefixo `/api/v1/`. Se você estiver utilizando a versão legada, remova o `/v1` do caminho.
-
 ### Autenticação de Usuários
 
 #### Registro de Usuário
 
 ```
-POST /api/v1/auth/register
+POST /usuarios/auth/register
 ```
 
 Cria uma nova conta de usuário.
@@ -101,7 +83,7 @@ Cria uma nova conta de usuário.
 #### Login de Usuário
 
 ```
-POST /api/v1/auth/login
+POST /usuarios/auth/login
 ```
 
 Autentica um usuário existente.
@@ -144,7 +126,7 @@ Autentica um usuário existente.
 #### Perfil do Usuário
 
 ```
-GET /api/v1/auth/profile
+GET /usuarios/auth/profile
 ```
 
 Retorna os dados do usuário autenticado.
@@ -159,12 +141,38 @@ Retorna os dados do usuário autenticado.
 }
 ```
 
+#### Atualizar Perfil do Usuário
+
+```
+PUT /usuarios/auth/update-profile
+```
+
+Atualiza os dados do perfil do usuário autenticado.
+
+**Parâmetros de Requisição:**
+```json
+{
+    "username": "usuarioatualizado",
+    "email": "novo@exemplo.com"
+}
+```
+
+**Resposta de Sucesso (200 OK):**
+```json
+{
+    "id": 5,
+    "username": "usuarioatualizado",
+    "email": "novo@exemplo.com",
+    "updated_at": "2023-05-15 10:30:00"
+}
+```
+
 ### Gestão de Despesas
 
 #### Listar Despesas
 
 ```
-GET /api/v1/despesas
+GET /financeiro/despesas
 ```
 
 Retorna a lista de despesas do usuário autenticado.
@@ -207,7 +215,7 @@ Retorna a lista de despesas do usuário autenticado.
 #### Criar Despesa
 
 ```
-POST /api/v1/despesas/create
+POST /financeiro/despesas/create
 ```
 
 Cria uma nova despesa para o usuário autenticado.
@@ -239,7 +247,7 @@ Cria uma nova despesa para o usuário autenticado.
 #### Detalhar Despesa
 
 ```
-GET /api/v1/despesas/{id}
+GET /financeiro/despesas/{id}
 ```
 
 Retorna os detalhes de uma despesa específica.
@@ -261,7 +269,7 @@ Retorna os detalhes de uma despesa específica.
 #### Atualizar Despesa
 
 ```
-PUT /api/v1/despesas/{id}/update
+PUT /financeiro/despesas/{id}/update
 ```
 
 Atualiza os dados de uma despesa existente.
@@ -293,7 +301,7 @@ Atualiza os dados de uma despesa existente.
 #### Excluir Despesa
 
 ```
-DELETE /api/v1/despesas/{id}/delete
+DELETE /financeiro/despesas/{id}/delete
 ```
 
 Exclui uma despesa (soft delete).
@@ -305,7 +313,7 @@ Exclui uma despesa (soft delete).
 #### Listar Categorias
 
 ```
-GET /api/v1/despesas/categorias
+GET /financeiro/despesas/categorias
 ```
 
 Retorna a lista de categorias disponíveis com informações visuais.
@@ -328,7 +336,7 @@ Retorna a lista de categorias disponíveis com informações visuais.
 #### Resumo de Despesas
 
 ```
-GET /api/v1/despesas/resumo
+GET /financeiro/despesas/resumo
 ```
 
 Retorna um resumo das despesas agrupadas por categoria.
@@ -373,83 +381,6 @@ Retorna um resumo das despesas agrupadas por categoria.
 }
 ```
 
-#### Relatórios Detalhados
-
-```
-GET /api/v1/despesas/relatorios
-```
-
-Retorna relatórios detalhados com insights e tendências.
-
-**Parâmetros de Consulta:**
-- `data_inicio`: Data inicial (formato: YYYY-MM-DD)
-- `data_fim`: Data final (formato: YYYY-MM-DD)
-- `categoria`: Filtrar por categoria específica
-
-**Resposta de Sucesso (200 OK):**
-```json
-{
-    "filtros": {
-        "dataInicio": "2023-03-01",
-        "dataFim": "2023-05-31",
-        "categoria": null
-    },
-    "resumo": {
-        "totalDespesas": 3650.80,
-        "qtdDespesas": 42,
-        "mediaMensal": 1216.93,
-        "maiorDespesa": {
-            "valor": 520.00,
-            "descricao": "Aluguel",
-            "data": "2023-05-05",
-            "categoria": {
-                "id": "moradia",
-                "nome": "Moradia",
-                "icone": "fas fa-home",
-                "cor": "bg-red-500"
-            }
-        },
-        "categoriaMaisUsada": {
-            "id": "alimentacao",
-            "nome": "Alimentação",
-            "icone": "fas fa-utensils",
-            "cor": "bg-blue-500",
-            "total": 1250.35
-        }
-    },
-    "graficos": {
-        "evolucaoTempo": [
-            {
-                "periodo": "2023-03",
-                "total": 1185.45
-            },
-            // ... mais períodos
-        ],
-        "despesasPorCategoria": [
-            {
-                "categoria": "alimentacao",
-                "nome": "Alimentação",
-                "total": 1250.35,
-                "icone": "fas fa-utensils",
-                "cor": "bg-blue-500",
-                "percentual": 34.25
-            },
-            // ... mais categorias
-        ]
-    },
-    "tendencias": {
-        "variacaoPercentual": 5.2,
-        "comparacaoPeriodoAnterior": {
-            "periodo": {
-                "inicio": "2022-12-01",
-                "fim": "2023-02-28"
-            },
-            "total": 3470.25
-        }
-    }
-}
-```
-
 ## Códigos de Status
 
 - `200 OK`: Requisição bem-sucedida
@@ -479,40 +410,45 @@ A API possui uma suíte completa de testes automatizados para garantir seu funci
 1. **Testes unitários**: Verificam o funcionamento isolado dos modelos, validações e regras de negócio.
 2. **Testes de integração**: Verificam a interação entre diferentes componentes do sistema.
 
-### Configuração do Ambiente de Teste
+### Execução de Testes em Ambiente Docker
 
-Para executar os testes da API:
+Para executar os testes em um ambiente Docker, siga estes passos:
 
-1. Prepare o banco de dados de teste:
+1. **Preparação do Banco de Dados de Teste**:
 ```bash
-./scripts/prepare-test-db.php
+# Dentro do contêiner da aplicação, execute:
+docker exec -it despesas_app php ./scripts/prepare-test-db.php
 ```
 
-2. Execute os testes:
+2. **Execução dos Testes Unitários**:
 ```bash
-./vendor/bin/codecept run
+# Executa todos os testes unitários
+docker exec -it despesas_app php ./vendor/bin/codecept run unit
+
+# Executa um teste unitário específico
+docker exec -it despesas_app php ./vendor/bin/codecept run unit path/to/test
 ```
 
-### Testes Manuais
-
-Para testar manualmente a API, você pode usar ferramentas como:
-
-- **curl**: Diretamente do terminal
-- **Postman**: Interface gráfica para testar APIs
-- **Insomnia**: Alternativa ao Postman
-
-Exemplo de teste manual com curl:
-
+3. **Execução dos Testes de Integração**:
 ```bash
-# Login
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"demo@example.com","password":"demo123"}'
-
-# Listar despesas (com o token obtido no login)
-curl -X GET http://localhost:8080/despesas \
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+# Certifique-se que a configuração de conexão com o banco esteja correta em tests/integration.suite.yml
+# O host deve ser 'despesas_db' para funcionar corretamente dentro do contêiner Docker
+docker exec -it despesas_app php ./vendor/bin/codecept run integration
 ```
+
+4. **Geração de Relatório de Cobertura**:
+```bash
+# Gerar relatório de cobertura de código
+docker exec -it despesas_app php ./vendor/bin/codecept run --coverage --coverage-html
+```
+
+O relatório gerado estará disponível no diretório `tests/_output/coverage/`.
+
+### Observações sobre os Testes
+
+- A execução de testes em ambiente Docker requer configurações específicas para as conexões entre os serviços
+- Os testes funcionais que exigem acesso HTTP entre contêineres podem exigir configurações adicionais de rede
+- Os dados de teste são recriados a cada execução para garantir consistência nos resultados
 
 ### Modelos Testados
 
@@ -521,16 +457,6 @@ Os testes da API cobrem os seguintes modelos e funcionalidades:
 - **User**: Autenticação, registro, validação de dados
 - **LoginForm**: Login com email/username, validação de credenciais
 - **Despesa**: CRUD completo, validações, categorização, filtros
-
-### Cobertura de Testes
-
-A cobertura de testes da API é monitorada regularmente para garantir a qualidade do código. Para gerar um relatório de cobertura:
-
-```bash
-./vendor/bin/codecept run --coverage --coverage-html
-```
-
-O relatório gerado estará disponível em `tests/_output/coverage/`.
 
 ## Limitações e Considerações
 
